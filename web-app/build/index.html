@@ -602,6 +602,9 @@
               <li class="nav-item" role="presentation">
                 <button class="nav-link" id="statistics-tab" data-bs-toggle="tab" data-bs-target="#statistics" type="button" role="tab">Statistics</button>
               </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings" type="button" role="tab">Settings</button>
+              </li>
             </ul>
           </div>
           <div class="card-body">
@@ -804,6 +807,176 @@
                     Statistics are gathered from log analysis
                   </div>
                   
+                </div>
+              </div>
+              
+              <!-- Settings Tab -->
+              <div class="tab-pane fade" id="settings" role="tabpanel" aria-labelledby="settings-tab">
+                <div class="container">
+                  <h2 class="section-title">Settings</h2>
+                  
+                  <!-- Settings Form -->
+                  <div class="settings-form">
+                    <form id="settingsForm">
+                      <!-- SMB Connection Settings -->
+                      <div class="settings-card mb-4">
+                        <h3 class="settings-card-title">
+                          <i class="fas fa-server"></i> SMB Connection
+                        </h3>
+                        <div class="row mb-3">
+                          <div class="col-md-6">
+                            <label for="smbServer" class="form-label">SMB Server</label>
+                            <input type="text" class="form-control" id="smbServer" placeholder="Server address">
+                          </div>
+                          <div class="col-md-6">
+                            <label for="smbShare" class="form-label">SMB Share</label>
+                            <input type="text" class="form-control" id="smbShare" placeholder="Share name">
+                          </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                          <div class="col-md-6">
+                            <label for="smbUser" class="form-label">Username</label>
+                            <input type="text" class="form-control" id="smbUser" placeholder="Username">
+                          </div>
+                          <div class="col-md-6">
+                            <label for="smbPassword" class="form-label">Password</label>
+                            <div class="input-group">
+                              <input type="password" class="form-control" id="smbPassword" placeholder="Password">
+                              <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                                <i class="fas fa-eye"></i>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div class="row">
+                          <div class="col-md-6">
+                            <div class="form-check form-switch">
+                              <input class="form-check-input" type="checkbox" id="anonymousAuth">
+                              <label class="form-check-label" for="anonymousAuth">Use anonymous authentication</label>
+                            </div>
+                          </div>
+                          <div class="col-md-6">
+                            <button type="button" class="btn btn-outline-primary" id="testConnection">
+                              <i class="fas fa-plug"></i> Test Connection
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <!-- Media Paths Settings -->
+                      <div class="settings-card mb-4">
+                        <h3 class="settings-card-title">
+                          <i class="fas fa-folder"></i> Media Paths
+                        </h3>
+                        <div class="row mb-3">
+                          <div class="col-md-6">
+                            <label for="englishMovies" class="form-label">English Movies</label>
+                            <input type="text" class="form-control" id="englishMovies" placeholder="Path for English movies">
+                          </div>
+                          <div class="col-md-6">
+                            <label for="englishTV" class="form-label">English TV Shows</label>
+                            <input type="text" class="form-control" id="englishTV" placeholder="Path for English TV shows">
+                          </div>
+                        </div>
+                        
+                        <div class="row">
+                          <div class="col-md-6">
+                            <label for="malayalamMovies" class="form-label">Malayalam Movies</label>
+                            <input type="text" class="form-control" id="malayalamMovies" placeholder="Path for Malayalam movies">
+                          </div>
+                          <div class="col-md-6">
+                            <label for="malayalamTV" class="form-label">Malayalam TV Shows</label>
+                            <input type="text" class="form-control" id="malayalamTV" placeholder="Path for Malayalam TV shows">
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <!-- Language Extraction Settings -->
+                      <div class="settings-card mb-4">
+                        <h3 class="settings-card-title">
+                          <i class="fas fa-language"></i> Language Extraction
+                          <span class="badge bg-success ms-2">New</span>
+                        </h3>
+                        
+                        <div class="row mb-3">
+                          <div class="col-md-6">
+                            <div class="form-check form-switch">
+                              <input class="form-check-input" type="checkbox" id="extractAudio" checked>
+                              <label class="form-check-label" for="extractAudio">Extract specific audio tracks</label>
+                            </div>
+                            <small class="text-muted">Extract only Malayalam and English audio tracks</small>
+                          </div>
+                          <div class="col-md-6">
+                            <div class="form-check form-switch">
+                              <input class="form-check-input" type="checkbox" id="extractSubtitles" checked>
+                              <label class="form-check-label" for="extractSubtitles">Extract subtitles</label>
+                            </div>
+                            <small class="text-muted">Extract English subtitles when available</small>
+                          </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                          <div class="col-md-6">
+                            <label for="preferredAudio" class="form-label">Preferred Audio Languages</label>
+                            <input type="text" class="form-control" id="preferredAudio" value="mal,eng" placeholder="Comma-separated language codes">
+                            <small class="text-muted">Language codes: mal (Malayalam), eng (English)</small>
+                          </div>
+                          <div class="col-md-6">
+                            <label for="preferredSubtitles" class="form-label">Preferred Subtitle Languages</label>
+                            <input type="text" class="form-control" id="preferredSubtitles" value="eng" placeholder="Comma-separated language codes">
+                            <small class="text-muted">Default: eng (English)</small>
+                          </div>
+                        </div>
+                        
+                        <div class="alert alert-info">
+                          <i class="fas fa-info-circle"></i> This feature requires <strong>ffmpeg</strong> and <strong>mediainfo</strong> to be installed on your system.
+                          <button type="button" class="btn btn-sm btn-outline-info ms-2" id="checkDependencies">Check Dependencies</button>
+                        </div>
+                      </div>
+                      
+                      <!-- Cleanup Settings -->
+                      <div class="settings-card mb-4">
+                        <h3 class="settings-card-title">
+                          <i class="fas fa-broom"></i> Cleanup Options
+                        </h3>
+                        <div class="row mb-3">
+                          <div class="col-md-6">
+                            <div class="form-check form-switch">
+                              <input class="form-check-input" type="checkbox" id="cleanupRar" checked>
+                              <label class="form-check-label" for="cleanupRar">Clean up RAR files after processing</label>
+                            </div>
+                          </div>
+                          <div class="col-md-6">
+                            <div class="form-check form-switch">
+                              <input class="form-check-input" type="checkbox" id="cleanupDirs" checked>
+                              <label class="form-check-label" for="cleanupDirs">Clean up empty directories</label>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div class="row">
+                          <div class="col-md-6">
+                            <div class="form-check form-switch">
+                              <input class="form-check-input" type="checkbox" id="dryRun">
+                              <label class="form-check-label" for="dryRun">Dry run mode (no changes made)</label>
+                            </div>
+                            <small class="text-muted">For testing without modifying files</small>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <button type="button" class="btn btn-primary me-md-2" id="saveSettings">
+                          <i class="fas fa-save"></i> Save Settings
+                        </button>
+                        <button type="reset" class="btn btn-outline-secondary">
+                          <i class="fas fa-undo"></i> Reset
+                        </button>
+                      </div>
+                    </form>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1324,6 +1497,152 @@
       
       // Initialize stats on first load
       updateDetailedStatistics();
+    });
+
+    // Toggle password visibility
+    document.getElementById('togglePassword').addEventListener('click', function() {
+      const passwordInput = document.getElementById('smbPassword');
+      const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+      passwordInput.setAttribute('type', type);
+      this.querySelector('i').classList.toggle('fa-eye');
+      this.querySelector('i').classList.toggle('fa-eye-slash');
+    });
+    
+    // Check dependencies
+    document.getElementById('checkDependencies').addEventListener('click', function() {
+      fetch(`${API_BASE}/check-dependencies`)
+        .then(response => response.json())
+        .then(data => {
+          let message = '';
+          let alertClass = '';
+          
+          if (data.success) {
+            message = 'All required dependencies are installed!';
+            alertClass = 'success';
+          } else {
+            message = `Missing dependencies: ${data.missing.join(', ')}`;
+            alertClass = 'danger';
+          }
+          
+          showToast(message, alertClass);
+        })
+        .catch(error => {
+          showToast('Failed to check dependencies', 'danger');
+        });
+    });
+    
+    // Load settings
+    function loadSettings() {
+      fetch(`${API_BASE}/settings`)
+        .then(response => response.json())
+        .then(data => {
+          // Populate SMB connection settings
+          document.getElementById('smbServer').value = data.SMB_SERVER || '';
+          document.getElementById('smbShare').value = data.SMB_SHARE || '';
+          document.getElementById('smbUser').value = data.SMB_USER || '';
+          document.getElementById('smbPassword').value = data.SMB_PASSWORD || '';
+          document.getElementById('anonymousAuth').checked = data.SMB_AUTH_METHOD === 'anonymous';
+          
+          // Populate media paths
+          document.getElementById('englishMovies').value = data.ENGLISH_MOVIE_PATH || '';
+          document.getElementById('englishTV').value = data.ENGLISH_TV_PATH || '';
+          document.getElementById('malayalamMovies').value = data.MALAYALAM_MOVIE_PATH || '';
+          document.getElementById('malayalamTV').value = data.MALAYALAM_TV_PATH || '';
+          
+          // Populate language extraction settings
+          document.getElementById('extractAudio').checked = data.EXTRACT_AUDIO_TRACKS === 'true';
+          document.getElementById('extractSubtitles').checked = data.EXTRACT_SUBTITLES === 'true';
+          document.getElementById('preferredAudio').value = data.PREFERRED_AUDIO_LANGS || 'mal,eng';
+          document.getElementById('preferredSubtitles').value = data.PREFERRED_SUBTITLE_LANGS || 'eng';
+          
+          // Populate cleanup options
+          document.getElementById('cleanupRar').checked = data.CLEANUP_RAR_FILES === 'true';
+          document.getElementById('cleanupDirs').checked = data.CLEANUP_EMPTY_DIRS === 'true';
+          document.getElementById('dryRun').checked = data.DRY_RUN === 'true';
+        })
+        .catch(error => {
+          showToast('Failed to load settings', 'danger');
+        });
+    }
+    
+    // Save settings
+    document.getElementById('saveSettings').addEventListener('click', function() {
+      const settings = {
+        SMB_SERVER: document.getElementById('smbServer').value,
+        SMB_SHARE: document.getElementById('smbShare').value,
+        SMB_USER: document.getElementById('smbUser').value,
+        SMB_PASSWORD: document.getElementById('smbPassword').value,
+        SMB_AUTH_METHOD: document.getElementById('anonymousAuth').checked ? 'anonymous' : 'user',
+        
+        ENGLISH_MOVIE_PATH: document.getElementById('englishMovies').value,
+        ENGLISH_TV_PATH: document.getElementById('englishTV').value,
+        MALAYALAM_MOVIE_PATH: document.getElementById('malayalamMovies').value,
+        MALAYALAM_TV_PATH: document.getElementById('malayalamTV').value,
+        
+        EXTRACT_AUDIO_TRACKS: document.getElementById('extractAudio').checked.toString(),
+        EXTRACT_SUBTITLES: document.getElementById('extractSubtitles').checked.toString(),
+        PREFERRED_AUDIO_LANGS: document.getElementById('preferredAudio').value,
+        PREFERRED_SUBTITLE_LANGS: document.getElementById('preferredSubtitles').value,
+        
+        CLEANUP_RAR_FILES: document.getElementById('cleanupRar').checked.toString(),
+        CLEANUP_EMPTY_DIRS: document.getElementById('cleanupDirs').checked.toString(),
+        DRY_RUN: document.getElementById('dryRun').checked.toString()
+      };
+      
+      fetch(`${API_BASE}/settings`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(settings)
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          showToast('Settings saved successfully', 'success');
+        } else {
+          showToast('Failed to save settings: ' + data.error, 'danger');
+        }
+      })
+      .catch(error => {
+        showToast('Failed to save settings', 'danger');
+      });
+    });
+    
+    // Test SMB connection
+    document.getElementById('testConnection').addEventListener('click', function() {
+      const connection = {
+        server: document.getElementById('smbServer').value,
+        share: document.getElementById('smbShare').value,
+        user: document.getElementById('smbUser').value,
+        password: document.getElementById('smbPassword').value,
+        anonymous: document.getElementById('anonymousAuth').checked
+      };
+      
+      fetch(`${API_BASE}/test-connection`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(connection)
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          showToast('Connection successful!', 'success');
+        } else {
+          showToast('Connection failed: ' + data.error, 'danger');
+        }
+      })
+      .catch(error => {
+        showToast('Connection test failed', 'danger');
+      });
+    });
+    
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function() {
+      // Load settings when the settings tab is clicked
+      document.getElementById('settings-tab').addEventListener('click', loadSettings);
     });
   </script>
 </body>

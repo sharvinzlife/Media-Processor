@@ -18,6 +18,12 @@ MALAYALAM_TV_PATH=media/malayalam-tv-shows
 ENGLISH_MOVIE_PATH=media/movies
 ENGLISH_TV_PATH=media/tv-shows
 
+# Language extraction settings
+EXTRACT_AUDIO_TRACKS=true        # Extract specific language audio tracks
+EXTRACT_SUBTITLES=true           # Extract subtitles
+PREFERRED_AUDIO_LANGS="mal,eng"  # Preferred audio languages (comma separated)
+PREFERRED_SUBTITLE_LANGS="eng"   # Preferred subtitle languages (comma separated)
+
 # Cleanup configuration
 CLEANUP_RAR_FILES=true
 CLEANUP_EMPTY_DIRS=true
@@ -32,6 +38,34 @@ log() {
     local message="$(date) - $1"
     echo "$message" >> $LOG_FILE
     echo "$message"
+}
+
+# Check required tools
+check_required_tools() {
+    local missing_tools=()
+    
+    # Check for smbclient
+    if ! command -v smbclient &> /dev/null; then
+        missing_tools+=("smbclient")
+    fi
+    
+    # Check for mediainfo
+    if ! command -v mediainfo &> /dev/null; then
+        missing_tools+=("mediainfo")
+    fi
+    
+    # Check for ffmpeg
+    if ! command -v ffmpeg &> /dev/null; then
+        missing_tools+=("ffmpeg")
+    fi
+    
+    if [ ${#missing_tools[@]} -gt 0 ]; then
+        log "ERROR: Missing required tools: ${missing_tools[*]}"
+        log "Please install them with: sudo apt-get install ${missing_tools[*]}"
+        return 1
+    fi
+    
+    return 0
 }
 
 # Function to clean filenames
@@ -80,6 +114,129 @@ identify_language() {
         echo "malayalam"
     else
         echo "english"
+    fi
+}
+
+# Function to detect audio and subtitle tracks in a media file
+detect_media_tracks() {
+    local file="$1"
+    local media_info=$(mediainfo --Output=JSON "$file")
+    
+    # Extract audio tracks info
+    local audio_tracks=$(echo "$media_info" | grep -o '"@type":"Audio"[^}]*' | grep -o '"Language":"[^"]*"' | cut -d'"' -f4)
+    
+    # Extract subtitle tracks info
+    local subtitle_tracks=$(echo "$media_info" | grep -o '"@type":"Text"[^}]*' | grep -o '"Language":"[^"]*"' | cut -d'"' -f4)
+    
+    log "Detected audio tracks: ${audio_tracks:-none}"
+    log "Detected subtitle tracks: ${subtitle_tracks:-none}"
+    
+    # Return both audio and subtitle tracks as a comma-separated list
+    echo "${audio_tracks// /},${subtitle_tracks// /}"
+}
+
+# Function to extract specific language audio and subtitle tracks
+extract_language_tracks() {
+    local source_file="$1"
+    local target_dir="$2"
+    local filename=$(basename "$source_file")
+    local filename_noext="${filename%.*}"
+    local extension="${filename##*.}"
+    local output_file="$target_dir/$filename"
+    local track_data=$(detect_media_tracks "$source_file")
+    
+    # Parse audio and subtitle tracks
+    IFS=',' read -ra all_tracks <<< "$track_data"
+    local audio_tracks=()
+    local subtitle_tracks=()
+    
+    # Separate audio and subtitle tracks
+    for track in "${all_tracks[@]}"; do
+        if [[ "$track" == "mal" || "$track" == "eng" ]]; then
+            audio_tracks+=("$track")
+        elif [[ "$track" == "eng" ]]; then
+            subtitle_tracks+=("$track")
+        fi
+    done
+    
+    log "Processing language tracks for $filename"
+    
+    if [ "$EXTRACT_AUDIO_TRACKS" = true ] || [ "$EXTRACT_SUBTITLES" = true ]; then
+        log "Extracting language-specific content from $filename"
+        
+        # Create ffmpeg command with audio track mapping
+        local cmd="ffmpeg -i \"$source_file\" -map 0:v"
+        
+        # Add audio tracks based on preferences
+        local has_audio=false
+        IFS=',' read -ra preferred_audio <<< "$PREFERRED_AUDIO_LANGS"
+        for lang in "${preferred_audio[@]}"; do
+            for i in "${!audio_tracks[@]}"; do
+                if [[ "${audio_tracks[$i]}" == "$lang" ]]; then
+                    cmd+=" -map 0:a:$i"
+                    has_audio=true
+                fi
+            done
+        done
+        
+        # If no preferred audio found, keep all audio tracks
+        if [ "$has_audio" = false ]; then
+            cmd+=" -map 0:a"
+        fi
+        
+        # Add subtitle tracks based on preferences
+        local has_subtitle=false
+        if [ "$EXTRACT_SUBTITLES" = true ]; then
+            IFS=',' read -ra preferred_subs <<< "$PREFERRED_SUBTITLE_LANGS"
+            for lang in "${preferred_subs[@]}"; do
+                for i in "${!subtitle_tracks[@]}"; do
+                    if [[ "${subtitle_tracks[$i]}" == "$lang" ]]; then
+                        cmd+=" -map 0:s:$i"
+                        has_subtitle=true
+                    fi
+                done
+            done
+            
+            # Extract subtitles as separate file if requested
+            for lang in "${preferred_subs[@]}"; do
+                for i in "${!subtitle_tracks[@]}"; do
+                    if [[ "${subtitle_tracks[$i]}" == "$lang" ]]; then
+                        ffmpeg -i "$source_file" -map 0:s:$i -c:s srt "$target_dir/${filename_noext}.${lang}.srt" -y
+                        log "Extracted ${lang} subtitle to ${filename_noext}.${lang}.srt"
+                    fi
+                done
+            done
+        fi
+        
+        # Finalize command
+        cmd+=" -c copy \"$output_file\""
+        
+        # Execute the command if changes are needed
+        if [ "$has_audio" = true ] || [ "$has_subtitle" = true ]; then
+            if [ "$DRY_RUN" = true ]; then
+                log "DRY RUN: Would execute: $cmd"
+            else
+                eval "$cmd"
+                if [ $? -eq 0 ]; then
+                    log "Successfully extracted language tracks to $output_file"
+                    echo "$output_file"  # Return the path to the processed file
+                    return 0
+                else
+                    log "ERROR: Failed to extract language tracks"
+                    return 1
+                fi
+            fi
+        else
+            log "No language tracks to extract, using original file"
+            cp "$source_file" "$output_file"
+            echo "$output_file"  # Return the path to the processed file
+            return 0
+        fi
+    else
+        log "Language track extraction disabled, using original file"
+        cp "$source_file" "$output_file"
+        echo "$output_file"  # Return the path to the processed file
+        return 0
     fi
 }
 
@@ -301,6 +458,34 @@ copy_file_to_smb() {
     fi
 }
 
+# Function to copy related subtitle files
+copy_subtitle_files() {
+    local source_file="$1"
+    local target_path="$2"
+    local basename="${source_file%.*}"
+    local success=0
+    
+    # Look for subtitle files with the same basename
+    for sub_file in "$basename".*.srt "$basename".srt; do
+        if [ -f "$sub_file" ]; then
+            local sub_filename=$(basename "$sub_file")
+            log "Found subtitle file: $sub_filename"
+            
+            copy_file_to_smb "$sub_file" "$target_path" "$sub_filename"
+            local copy_status=$?
+            
+            if [ $copy_status -eq 0 ]; then
+                success=1
+                log "Subtitle file $sub_filename copied successfully"
+            else
+                log "ERROR: Failed to copy subtitle file $sub_filename"
+            fi
+        fi
+    done
+    
+    return $success
+}
+
 # Function to process media files
 process_media_file() {
     local file="$1"
@@ -388,30 +573,52 @@ process_media_file() {
         return
     fi
     
-    # Create a temporary file with cleaned name if needed
-    if [ "$clean_name" != "$filename" ]; then
-        log "Creating temp file with cleaned name"
-        # Get file extension
-        temp_dir="/tmp"
-        temp_file="$temp_dir/$clean_name"
+    # Create a temporary directory for processing
+    temp_dir=$(mktemp -d)
+    log "Created temporary directory for processing: $temp_dir"
+    
+    # Process the file for language-specific tracks if needed
+    local processed_file
+    if [[ "$EXTRACT_AUDIO_TRACKS" == "true" || "$EXTRACT_SUBTITLES" == "true" ]]; then
+        processed_file=$(extract_language_tracks "$file" "$temp_dir")
         
-        # Copy the original file to the temp location with cleaned name
-        cp "$file" "$temp_file"
-        
-        # Copy file to SMB share into the new folder with the cleaned name
-        copy_file_to_smb "$temp_file" "$full_target_path" "$clean_name"
-        copy_status=$?
-        
-        # Remove temporary file
-        rm "$temp_file"
+        if [ $? -ne 0 ]; then
+            log "WARNING: Failed to extract language tracks, using original file"
+            processed_file="$file"
+        else
+            log "Successfully processed file with language tracks: $processed_file"
+        fi
     else
-        # Copy file directly if no cleaning was needed
-        copy_file_to_smb "$file" "$full_target_path" "$clean_name"
-        copy_status=$?
+        processed_file="$file"
+        log "Language extraction skipped as per configuration"
+    fi
+    
+    # Get the processed filename
+    local processed_filename=$(basename "$processed_file")
+    
+    # Use clean name for the final file
+    local final_filename
+    if [ "$clean_name" != "$filename" ]; then
+        final_filename="$clean_name.${processed_filename##*.}"
+    else
+        final_filename="$processed_filename"
+    fi
+    
+    # Copy the processed file to SMB share
+    copy_file_to_smb "$processed_file" "$full_target_path" "$final_filename"
+    copy_status=$?
+    
+    # Copy any associated subtitle files
+    copy_subtitle_files "$processed_file" "$full_target_path"
+    
+    # Cleanup the temporary directory
+    if [ "$temp_dir" != "" ] && [ -d "$temp_dir" ]; then
+        rm -rf "$temp_dir"
+        log "Removed temporary directory: $temp_dir"
     fi
     
     if [ $copy_status -eq 0 ]; then
-        log "SUCCESS: Copied '$clean_name' to //$SMB_SERVER/$SMB_SHARE/$full_target_path"
+        log "SUCCESS: Copied '$final_filename' to //$SMB_SERVER/$SMB_SHARE/$full_target_path"
         
         if [ "$DRY_RUN" = true ]; then
             log "DRY RUN: Would remove original file: $file"
@@ -564,6 +771,13 @@ main() {
     log "Starting media monitoring for $SOURCE_DIR"
     log "Operating mode: $([ "$DRY_RUN" = true ] && echo "DRY RUN (no files will be modified)" || echo "NORMAL")"
     
+    # Check required tools
+    check_required_tools
+    if [ $? -ne 0 ]; then
+        log "ERROR: Missing required tools. Please install them and restart the script."
+        exit 1
+    fi
+    
     # Check if smbclient is installed
     if ! command -v smbclient &> /dev/null; then
         log "ERROR: smbclient is not installed. Please install it with 'sudo apt-get install smbclient'"
@@ -588,6 +802,12 @@ main() {
     verify_smb_path "$MALAYALAM_TV_PATH"
     verify_smb_path "$ENGLISH_MOVIE_PATH"
     verify_smb_path "$ENGLISH_TV_PATH"
+    
+    log "Language track extraction settings:"
+    log "- Extract audio tracks: $EXTRACT_AUDIO_TRACKS"
+    log "- Extract subtitles: $EXTRACT_SUBTITLES" 
+    log "- Preferred audio languages: $PREFERRED_AUDIO_LANGS"
+    log "- Preferred subtitle languages: $PREFERRED_SUBTITLE_LANGS"
     
     while true; do
         log "Scanning for new content..."
