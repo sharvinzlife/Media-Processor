@@ -5,7 +5,7 @@ After=network.target
 [Service]
 Type=simple
 User=sharvinzlife
-ExecStart=/home/sharvinzlife/Documents/JDownloader/media-processor.sh
+ExecStart=/home/sharvinzlife/media-processor/bin/media-processor.sh
 Restart=on-failure
 RestartSec=30
 

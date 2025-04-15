@@ -1,309 +1,179 @@
 # 🎬 Media Processor
 
-> Automated media organizer for JDownloader with web interface
+![Media Processor Logo](https://img.shields.io/badge/Media%20Processor-v2.0-blue?style=for-the-badge&logo=appveyor)
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-
-## 📋 Overview
-
-Media Processor is an intelligent automation tool that monitors your JDownloader directory, processes media files, and organizes them into a structured library on your network storage. It handles file renaming, categorization, and cleanup to maintain a clean and well-organized media collection.
-
-The system consists of:
-- **Backend Script**: A bash script that handles media detection, processing, and SMB transfers
-- **Web Interface**: A modern React application for configuration and monitoring
-
-![Media Processor Workflow](https://via.placeholder.com/800x400.png?text=Media+Processor+Workflow)
+> **Automatically organize your media files into structured libraries with intelligent language detection and extraction**
 
 ## ✨ Features
 
-### Core Features
-- **🔍 Intelligent Media Detection**: Automatically identifies TV shows and movies
-- **🌐 Language Classification**: Sorts content between Malayalam and English media
-- **🧹 Filename Cleaning**: Removes common prefixes, site references, and fixes spacing
-- **🗂️ Automatic Organization**: Creates appropriate folder structures for movies and TV shows
-- **🌐 SMB Integration**: Seamlessly copies processed files to network storage
-- **♻️ Automatic Cleanup**: Immediately removes leftover RAR files and empty directories after successful processing
-- **📝 Detailed Logging**: Keeps track of all operations for easy troubleshooting
-- **🧪 Dry Run Mode**: Test functionality without modifying any files
+- 🔍 **Intelligent Media Detection** - Automatically identifies movies and TV shows
+- 🌐 **Language Support** - Special focus on Malayalam content with dedicated language extraction
+- 🗂️ **Smart Organization** - Creates proper folder structures for your media library
+- 🔄 **Automatic Processing** - Monitors download folders and processes new files
+- 🖥️ **Web Interface** - Control and monitor the processor through a sleek web UI
+- 🔌 **SMB Integration** - Seamlessly transfers files to your media server
+- 🧹 **Cleanup Tools** - Removes leftover files and empty directories
 
-### Web Interface Features
-- **📊 Real-time Dashboard**: Monitor service status and processing statistics
-- **⚙️ Easy Configuration**: Manage SMB connections and media paths without editing files
-- **📝 Log Viewer**: View and filter logs directly in the browser
-- **🔄 Service Control**: Start, stop, and restart the service with one click
-- **📱 Responsive Design**: Works on desktop and mobile devices
-- **🌓 Dark/Light Mode**: Toggle between themes with a persistent preference
-- **🔍 Media Path Browser**: Easily set and navigate your media directories
-- **🌟 Modern UI**: Glassmorphism design with smooth animations and transitions
+## 🏗️ Architecture
 
-## 🎨 UI/UX Improvements
+The Media Processor has been completely refactored into a modular architecture:
 
-The web interface features:
+```
+media-processor/
+├── bin/                  # Executable scripts
+│   └── media-processor.sh
+├── lib/                  # Modular components
+│   ├── config.sh         # Configuration variables
+│   ├── utils.sh          # Common utility functions
+│   ├── media-detection.sh # Media type detection
+│   ├── language-extraction.sh # Language processing
+│   ├── file-transfer.sh  # SMB file operations
+│   └── cleanup.sh        # Cleanup operations
+├── web-app/              # Web interface
+│   ├── api/              # Backend API server
+│   └── build/            # Frontend assets
+└── service files         # Systemd service definitions
+```
 
-- **Glassmorphism Header**: A modern sticky navigation bar with blur effects that stays at the top while scrolling
-- **Adaptive Theme**: Smart theme detection that automatically applies your system preference
-- **Animated Components**: Smooth transitions for cards, buttons, and status changes
-- **Toast Notifications**: Non-intrusive feedback system for user actions
-- **Responsive Layout**: Adapts to any screen size from mobile to desktop
-- **Dashboard Cards**: At-a-glance information with hover effects
-- **Icon Library**: Comprehensive set of intuitive icons for better visual communication
-- **Accessibility**: High contrast ratios and keyboard navigation support
+## 🚀 Getting Started
 
-## 🛠️ Requirements
+### Prerequisites
 
-- Linux-based operating system
-- Bash shell
-- `smbclient` package for SMB/CIFS connectivity
-- Network storage with SMB/CIFS support
-- Node.js 14+ and npm (for web interface)
-- Sufficient disk space for temporary file processing
+- Linux system with Bash
+- `smbclient` for SMB file transfers
+- `mediainfo` for media analysis
+- `ffmpeg` for media processing
+- `mkvmerge` and `mkvextract` for MKV manipulation
 
-## 📦 Quick Setup
+### Installation
 
-### Simple Setup (One Command)
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/sharvinzlife/Media-Processor.git
+   cd Media-Processor
+   ```
+
+2. Configure your settings:
+   ```bash
+   nano lib/config.sh
+   ```
+
+3. Install the service:
+   ```bash
+   sudo ./setup.sh
+   ```
+
+4. Start the services:
+   ```bash
+   sudo systemctl start media-processor.service
+   sudo systemctl start media-processor-web.service
+   ```
+
+## 🖥️ Web Interface
+
+The Media Processor includes a modern web interface for easy control and monitoring:
+
+- **Dashboard** - View processing statistics and current status
+- **Controls** - Start, stop, and restart the processor
+- **Settings** - Configure SMB connections and media paths
+- **Logs** - View real-time processing logs
+- **Diagnostics** - Test connections and troubleshoot issues
+
+Access the web interface at: `http://your-server:3001`
+
+## 🔧 Configuration
+
+Edit `lib/config.sh` to customize your setup:
 
 ```bash
-# Navigate to the project directory
-cd /home/sharvinzlife/Documents/JDownloader
+# Base directories
+SOURCE_DIR=/path/to/downloads/
+LOG_FILE="/path/to/media-processor.log"
 
-# Run the setup script
-./setup.sh
-```
+# SMB connection settings
+SMB_SERVER="your-server"
+SMB_SHARE="your-share"
+SMB_USER="username"
+SMB_PASSWORD="password"
 
-The setup script will:
-1. Make the media processor script executable
-2. Install all web interface dependencies
-3. Configure and enable systemd services
-4. Start both services
-
-### Accessing the Web Interface
-
-Once installed, access the web interface at:
-```
-http://localhost:3001
-```
-
-If accessing from another device, replace "localhost" with your server's IP address.
-
-## ⚙️ Configuration
-
-### Script Configuration
-
-The script has several configurable options at the top:
-
-```bash
-# Basic Configuration
-SOURCE_DIR="/path/to/downloads/"        # Directory to monitor
-LOG_FILE="/path/to/media-processor.log" # Log file location
-SMB_SERVER="your-server"                # SMB server address
-SMB_SHARE="your-share"                  # SMB share name
-
-# SMB Authentication
-SMB_USER="username"                     # SMB username
-SMB_PASSWORD="password"                 # SMB password
-SMB_AUTH_METHOD="user"                  # Options: user, anonymous
-
-# Media Paths
+# Media paths
 MALAYALAM_MOVIE_PATH="media/malayalam movies"
 MALAYALAM_TV_PATH="media/malayalam-tv-shows"
 ENGLISH_MOVIE_PATH="media/movies"
 ENGLISH_TV_PATH="media/tv-shows"
 
-# Cleanup Options
-CLEANUP_RAR_FILES=true                  # Enable RAR file cleanup
-CLEANUP_EMPTY_DIRS=true                 # Enable empty directory cleanup
-MIN_RAR_AGE_HOURS=0                     # Set to 0 for immediate cleanup
+# Language extraction settings
+EXTRACT_AUDIO_TRACKS=true
+EXTRACT_SUBTITLES=true
+PREFERRED_LANGUAGE="mal"
 ```
 
-### Web Interface Configuration
+## 🌟 Malayalam Language Support
 
-All configuration can be managed through the web interface once running. The interface connects to the API server which manipulates the script configuration file.
+The Media Processor has special features for Malayalam content:
 
-## 🚀 Manual Service Setup
+- 🎯 **Intelligent Detection** - Identifies Malayalam content from filenames and metadata
+- 🔊 **Audio Track Extraction** - Extracts Malayalam audio tracks from multi-language files
+- 📝 **Subtitle Management** - Preserves English subtitles for Malayalam content
+- 📂 **Dedicated Libraries** - Organizes Malayalam movies and TV shows in separate libraries
 
-If you prefer to set up the services manually:
+## 🔄 Automatic Processing
 
-### Backend Script Service
+The processor monitors your download directory and automatically:
+
+1. 🔍 Detects new media files
+2. 🧠 Identifies the content type (movie/TV show) and language
+3. 🔤 Extracts appropriate language tracks if needed
+4. 📋 Cleans up filenames and adds metadata
+5. 📤 Transfers files to the correct location on your media server
+6. 🧹 Cleans up leftover files and empty directories
+
+## 🛠️ Advanced Usage
+
+### Manual Processing
+
+You can manually process files or directories:
 
 ```bash
-sudo tee /etc/systemd/system/media-processor.service > /dev/null << EOL
-[Unit]
-Description=Media Processor Service
-After=network.target
-
-[Service]
-Type=simple
-User=$(whoami)
-ExecStart=/home/sharvinzlife/Documents/JDownloader/media-processor.sh
-Restart=on-failure
-RestartSec=10
-StandardOutput=journal
-StandardError=journal
-
-[Install]
-WantedBy=multi-user.target
-EOL
-
-sudo systemctl enable media-processor.service
-sudo systemctl start media-processor.service
+./bin/media-processor.sh --process /path/to/file.mkv
 ```
 
-### Web Interface Service
+### Dry Run Mode
+
+Test without making any changes:
 
 ```bash
-sudo tee /etc/systemd/system/media-processor-ui.service > /dev/null << EOL
-[Unit]
-Description=Media Processor Web Interface
-After=network.target
-
-[Service]
-Type=simple
-User=$(whoami)
-WorkingDirectory=/home/sharvinzlife/Documents/JDownloader/web-app/api
-ExecStart=/usr/bin/node server.js
-Restart=on-failure
-RestartSec=10
-Environment=PORT=3001
-Environment=NODE_ENV=production
-
-[Install]
-WantedBy=multi-user.target
-EOL
-
-sudo systemctl enable media-processor-ui.service
-sudo systemctl start media-processor-ui.service
+DRY_RUN=true ./bin/media-processor.sh
 ```
 
-## 📊 How It Works
+### Debugging
 
-1. **Monitoring**: The script continuously monitors your download directory for new media files
-2. **Detection**: When a new file is found, it checks if it's a TV show or movie and identifies the language
-3. **Processing**: The file is renamed, removing common prefixes and cleaning up the filename
-4. **Organization**: Appropriate folder structures are created on your network storage
-5. **Transfer**: The processed file is copied to the network storage in the correct folder
-6. **Verification**: The script verifies the file was copied successfully
-7. **Cleanup**: Original files, RAR files, and empty directories are immediately removed after verification
-
-## 🔄 Media Organization Structure
-
-```
-Media Share
-├── movies/                     # English movies
-│   ├── Movie Title 1/
-│   │   └── Movie Title 1.mkv
-│   └── Movie Title 2/
-│       └── Movie Title 2.mp4
-├── tv-shows/                   # English TV shows
-│   ├── Show Name 1/
-│   │   ├── Show Name 1 S01E01.mkv
-│   │   └── Show Name 1 S01E02.mkv
-│   └── Show Name 2/
-│       └── Show Name 2 S01E01.mp4
-├── malayalam movies/           # Malayalam movies
-│   └── Malayalam Movie Title/
-│       └── Malayalam Movie Title.mkv
-└── malayalam-tv-shows/         # Malayalam TV shows
-    └── Malayalam Show/
-        └── Malayalam Show S01E01.mkv
-```
-
-## 🌐 Web Interface Implementation
-
-The web interface is built with a modern technology stack and follows industry best practices:
-
-### Frontend
-- **HTML5/CSS3**: Modern web standards for structure and styling
-- **Bootstrap 5**: Responsive grid system and UI components
-- **JavaScript (ES6+)**: Modern JavaScript for enhanced interactivity
-- **Lottie Animations**: Vector animations for status indicators
-- **LocalStorage API**: Persistent theme preferences and settings
-- **Fetch API**: Asynchronous communication with the backend
-
-### Backend API
-- **Express.js**: Lightweight Node.js web framework
-- **RESTful Architecture**: Clean API endpoints following REST principles
-- **File System Operations**: Direct configuration file manipulation
-- **Process Management**: Service control through systemd
-- **Static File Serving**: Efficient delivery of frontend assets
-- **Environment Variables**: Secure configuration management
-
-### Web Interface Features
-- **Dashboard**: View service status, processing statistics, and recent activity
-- **Settings**: Configure SMB connections, paths, and processing options
-- **Logs**: View detailed logs of the processor's activity
-- **Media Paths**: Manage directory paths for different media types
-- **Theme Switcher**: Toggle between light and dark modes with persistent preference
-- **Responsive Design**: Adapts to any screen size from mobile to desktop
-- **Service Controls**: Start, stop, and restart the service with one click
-
-### Recent UI Improvements
-- Added a sticky glassmorphism header that elegantly adapts when scrolling
-- Enhanced theme toggle with improved visibility and contrast
-- Implemented persistent theme preference using localStorage
-- Optimized dark mode color palette for better readability
-- Added subtle animations for state changes and interactions
-- Improved mobile responsiveness for all screen sizes
-
-Access the web interface at `http://your-server:3001` after starting the service.
-
-## 💻 Development
-
-### Frontend Development
-```bash
-# Start React development server
-cd web-app
-npm start
-```
-
-### Backend API Development
-```bash
-# Start API server in development mode
-cd web-app/api
-npm run dev
-```
-
-## 🐛 Troubleshooting
-
-### Common Issues
+Enable verbose logging:
 
 ```bash
-# Check the log file for details
-tail -f /home/sharvinzlife/media-processor.log
-
-# Check service status
-sudo systemctl status media-processor.service
-sudo systemctl status media-processor-ui.service
+DEBUG=true ./bin/media-processor.sh
 ```
 
-- **Script Not Found**: Ensure you're in the correct directory `/home/sharvinzlife/Documents/JDownloader/`
-- **SMB Connection Failures**: Verify server address, share name, and credentials
-- **Permission Issues**: Ensure the user running the script has appropriate permissions
-- **Missing Files**: Check that smbclient is installed (`sudo apt install smbclient`)
-- **Web Interface Errors**: Check that Node.js is properly installed and the API server is running
+## 📊 Recent Improvements
 
-## 🔐 Security Considerations
+- ✅ **Modular Architecture** - Complete refactoring into separate modules
+- ✅ **Enhanced Malayalam Support** - Improved language detection and extraction
+- ✅ **Modern Web Interface** - New responsive UI with dark mode support
+- ✅ **Improved SMB Handling** - More reliable file transfers and error handling
+- ✅ **Better Filename Cleaning** - Removes language tags and cleans up filenames
+- ✅ **Diagnostic Tools** - New tools for troubleshooting connection issues
 
-- The application requires sudo access to manage the systemd service
-- API endpoints should be protected in a production environment
-- Consider using HTTPS for production deployments
-- Avoid storing sensitive credentials in plain text
-
-## 📄 License
+## 📜 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-## 🔄 Recent Updates
+## 🙏 Acknowledgments
 
-### 2023-10-17
-- Implemented a modern web interface with real-time monitoring
-- Added dark/light theme toggle with persistent preference
-- Improved the UI with glassmorphism and sticky header
+- Thanks to all the open-source tools that make this possible
+- Special thanks to the MediaInfo and MKVToolNix projects
 
-### 2023-10-16
-- Enhanced RAR file cleanup to happen immediately after successful media processing
-- Fixed various UI issues in both light and dark themes
-- Added comprehensive documentation for the web interface
+---
 
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request. 
+<p align="center">
+  Made with ❤️ for media enthusiasts
+</p>
