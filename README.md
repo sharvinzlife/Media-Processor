@@ -1,18 +1,16 @@
 # 🎬 Media Processor
 
-![Media Processor Logo](https://img.shields.io/badge/Media%20Processor-v2.0-blue?style=for-the-badge&logo=appveyor)
-
 > **Automatically organize your media files into structured libraries with intelligent language detection and extraction**
 
 ## ✨ Features
 
-- 🔍 **Intelligent Media Detection** - Automatically identifies movies and TV shows
-- 🌐 **Language Support** - Special focus on Malayalam content with dedicated language extraction
-- 🗂️ **Smart Organization** - Creates proper folder structures for your media library
-- 🔄 **Automatic Processing** - Monitors download folders and processes new files
-- 🖥️ **Web Interface** - Control and monitor the processor through a sleek web UI
-- 🔌 **SMB Integration** - Seamlessly transfers files to your media server
-- 🧹 **Cleanup Tools** - Removes leftover files and empty directories
+* 🔍 **Intelligent Media Detection** - Automatically identifies movies and TV shows
+* 🌐 **Robust Language Support** - Special focus on Malayalam content with enhanced language extraction
+* 🗂️ **Smart Organization** - Creates proper folder structures for your media library
+* 🔄 **Automatic Processing** - Monitors download folders and processes new files
+* 🖥️ **Web Interface** - Control and monitor the processor through a sleek web UI
+* 🔌 **SMB Integration** - Seamlessly transfers files to your media server
+* 🧹 **Cleanup Tools** - Removes leftover files and empty directories
 
 ## 🏗️ Architecture
 
@@ -39,11 +37,11 @@ media-processor/
 
 ### Prerequisites
 
-- Linux system with Bash
-- `smbclient` for SMB file transfers
-- `mediainfo` for media analysis
-- `ffmpeg` for media processing
-- `mkvmerge` and `mkvextract` for MKV manipulation
+* Linux system with Bash
+* `smbclient` for SMB file transfers
+* `mediainfo` for media analysis
+* `ffmpeg` for media processing
+* `mkvmerge` and `mkvextract` for MKV manipulation
 
 ### Installation
 
@@ -73,11 +71,11 @@ media-processor/
 
 The Media Processor includes a modern web interface for easy control and monitoring:
 
-- **Dashboard** - View processing statistics and current status
-- **Controls** - Start, stop, and restart the processor
-- **Settings** - Configure SMB connections and media paths
-- **Logs** - View real-time processing logs
-- **Diagnostics** - Test connections and troubleshoot issues
+* **Dashboard** - View processing statistics and current status
+* **Controls** - Start, stop, and restart the processor
+* **Settings** - Configure SMB connections and media paths
+* **Logs** - View real-time processing logs
+* **Diagnostics** - Test connections and troubleshoot issues
 
 Access the web interface at: `http://your-server:3001`
 
@@ -110,14 +108,15 @@ PREFERRED_LANGUAGE="mal"
 
 ## 🌟 Malayalam Language Support
 
-The Media Processor has special features for Malayalam content:
+The Media Processor has enhanced features for Malayalam content:
 
-- 🎯 **Intelligent Detection** - Identifies Malayalam content from filenames and metadata
-- 🔊 **Audio Track Extraction** - Extracts Malayalam audio tracks from multi-language files
-- 📝 **Subtitle Management** - Preserves English subtitles for Malayalam content
-- 📂 **Dedicated Libraries** - Organizes Malayalam movies and TV shows in separate libraries
+* 🎯 **Advanced Detection** - Identifies Malayalam content from filenames, audio tracks, and metadata
+* 🔊 **Multi-Format Track Detection** - Supports all Malayalam language code variants (Mal, mal, ML, ml, M, m)
+* 🔍 **Intelligent Track Selection** - Automatically finds the correct Malayalam audio track
+* 📝 **Subtitle Preservation** - Keeps English subtitles while extracting Malayalam audio
+* 📂 **Dedicated Libraries** - Organizes Malayalam movies and TV shows in separate libraries
 
-## 🔄 Automatic Processing
+## 🔄 Automatic Processing Workflow
 
 The processor monitors your download directory and automatically:
 
@@ -156,12 +155,30 @@ DEBUG=true ./bin/media-processor.sh
 
 ## 📊 Recent Improvements
 
-- ✅ **Modular Architecture** - Complete refactoring into separate modules
-- ✅ **Enhanced Malayalam Support** - Improved language detection and extraction
-- ✅ **Modern Web Interface** - New responsive UI with dark mode support
-- ✅ **Improved SMB Handling** - More reliable file transfers and error handling
-- ✅ **Better Filename Cleaning** - Removes language tags and cleans up filenames
-- ✅ **Diagnostic Tools** - New tools for troubleshooting connection issues
+* ✅ **Enhanced Language Detection** - Improved detection for all Malayalam language code variants
+* ✅ **Reliable Track Extraction** - Redesigned MKV audio track extraction with robust error handling
+* ✅ **MediaInfo Integration** - Using MediaInfo for more reliable track identification
+* ✅ **Intelligent Track Selection** - Smarter algorithms to find correct Malayalam audio tracks with fallback strategies
+* ✅ **Temporary Processing Directory** - Added processed directory structure for safer extraction
+* ✅ **Output Verification** - Thorough verification of extracted files before finalization
+* ✅ **Comprehensive Logging** - Detailed logging at each step for easier troubleshooting
+* ✅ **Subtitle Track Handling** - Improved extraction of subtitles alongside audio tracks
+* ✅ **Path Handling Fixes** - Improved handling of file paths with special characters
+* ✅ **File Cleanup Logic** - Better management of temporary files and failed extractions
+* ✅ **Modular Architecture** - Complete refactoring into separate, maintainable modules
+* ✅ **Modern Web Interface** - Responsive UI with dark mode support
+* ✅ **Improved SMB Handling** - More reliable file transfers and error handling
+
+## 🔍 Language Extraction Process
+
+The Malayalam language extraction process now follows these steps:
+
+1. 🔎 **Identify Language** - Detects Malayalam content using filename patterns and audio metadata
+2. 🎯 **Locate Tracks** - Uses MediaInfo to reliably identify the Malayalam audio track
+3. 🗃️ **Extract Tracks** - Employs MKVMerge to extract the Malayalam audio and English subtitles
+4. ✓ **Verify Output** - Confirms that the extraction was successful before proceeding
+5. 🔄 **Process Output** - Moves the verified file to its temporary location for further processing
+6. 🧹 **Cleanup** - Removes any temporary files and directories created during extraction
 
 ## 📜 License
 
@@ -169,11 +186,9 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## 🙏 Acknowledgments
 
-- Thanks to all the open-source tools that make this possible
-- Special thanks to the MediaInfo and MKVToolNix projects
+* Thanks to all the open-source tools that make this possible
+* Special thanks to the MediaInfo and MKVToolNix projects
 
 ---
 
-<p align="center">
-  Made with ❤️ for media enthusiasts
-</p>
+Made with ❤️ for media enthusiasts
