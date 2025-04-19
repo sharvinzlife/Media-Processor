@@ -165,6 +165,8 @@ DEBUG=true ./bin/media-processor.sh
 * ✅ **Subtitle Track Handling** - Improved extraction of subtitles alongside audio tracks
 * ✅ **Path Handling Fixes** - Improved handling of file paths with special characters
 * ✅ **File Cleanup Logic** - Better management of temporary files and failed extractions
+* ✅ **Processing Marker System** - Added a reliable marker system for tracking extraction outputs
+* ✅ **Fail-safe Processing** - Enhanced validation steps with proper fallbacks
 * ✅ **Modular Architecture** - Complete refactoring into separate, maintainable modules
 * ✅ **Modern Web Interface** - Responsive UI with dark mode support
 * ✅ **Improved SMB Handling** - More reliable file transfers and error handling
