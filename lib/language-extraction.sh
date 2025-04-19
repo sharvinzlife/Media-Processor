@@ -1,501 +1,408 @@
 #!/bin/bash
 #
 # Media Processor - Language Extraction Module
-# This file contains functions for language detection and extraction
-# with enhanced support for Malayalam language
+# Focused on Malayalam language extraction from media files
+# Can be run as a standalone script.
 #
+# Usage: ./language-extraction.sh <input_file> <language_code> <target_output_file>
+#
+# On success: Prints the full path of the extracted file to STDOUT and exits 0.
+# On failure or skip: Prints nothing to STDOUT and exits 1 (failure) or 0 (skipped).
 
-# Source the configuration and utilities
+# Source the configuration and utilities (assuming they set environment variables)
+# If config.sh/utils.sh define functions needed here, they MUST be sourced.
+# Let's assume they are needed for now.
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-source "$SCRIPT_DIR/config.sh"
-source "$SCRIPT_DIR/utils.sh"
+source "$SCRIPT_DIR/config.sh" # For PROCESSED_DIR, LOG_FILE etc.
+source "$SCRIPT_DIR/utils.sh"   # For check_required_tools if needed
 
-# Function to determine if content is Malayalam or English
-identify_language() {
-    local filename="$1"
-    
-    # Check if it has Malayalam in the filename (including [Tam + ... + Mal] format)
-    if echo "$filename" | grep -i "Malayalam" > /dev/null || \
-       echo "$filename" | grep -i "\[.*Mal.*\]" > /dev/null || \
-       echo "$filename" | grep -i "Mal" > /dev/null; then
-        echo "malayalam"
-    else
-        echo "english"
-    fi
+# Internal logging function for this script (writes to stderr)
+log_lib() {
+    # Use LOG_FILE defined in config.sh if available, otherwise fallback
+    local logfile="${LOG_FILE:-/tmp/language-extraction.log}"
+    echo "$(date +'%a %b %d %I:%M:%S %p %Z %Y') - [Extractor] $*" >> "$logfile"
+    # Also print to stderr for visibility if not run via service
+    echo "$(date +'%a %b %d %I:%M:%S %p %Z %Y') - [Extractor] $*" >&2
 }
 
-# Function to extract language tracks from a media file
-# Returns a comma-separated list of language codes
-extract_language_tracks() {
-    local file="$1"
-    local detected_languages=""
+# Define processed directory relative to JDownloader path if not set by config
+JDOWNLOADER_DIR="${JDOWNLOADER_DIR:-/home/sharvinzlife/Documents/JDownloader}"
+PROCESSED_DIR="${PROCESSED_DIR:-$JDOWNLOADER_DIR/processed}"
+EXTRACT_AUDIO_TRACKS=${EXTRACT_AUDIO_TRACKS:-true} # Default if not set
+
+# Clean language tags from filename - DECLARE EARLY
+clean_language_tags() {
+    local filename="$1"
+    echo "$filename" | sed -E 's/\[(mal|malayalam|tamil|telugu|hindi|kannada)\]//gi' | \
+                       sed -E 's/\((mal|malayalam|tamil|telugu|hindi|kannada)\)//gi' | \
+                       sed -E 's/-+(mal|malayalam|tamil|telugu|hindi|kannada)//gi'
+}
+
+# Extract language tracks using mediainfo - DECLARE EARLY
+extract_language_tracks_mediainfo() {
+    local input_file="$1"
+    mediainfo --Output="Audio;%Language/String%\n" "$input_file" 2>/dev/null | sort -u
+}
+
+# Function to identify language from filename and content
+identify_language() {
+    local filename="$1"
+    local filename_lower="${filename,,}"  # Convert to lowercase
+    local identified_lang="unknown" # Default
+
+    log_lib "Identifying language for: $(basename "$filename")"
+    if [ -f "$filename" ]; then
+        local audio_langs
+        audio_langs=$(mediainfo --Output='Audio;%Language/String%\n' "$filename" 2>/dev/null | tr '[:upper:]' '[:lower:]')
+        log_lib "Audio languages found: $audio_langs"
+        if [[ "$audio_langs" =~ (mal|malayalam|ml) ]]; then
+            log_lib "Malayalam audio track detected"
+            identified_lang="malayalam"
+        fi
+        if [ "$identified_lang" = "unknown" ]; then
+            local audio_titles
+            audio_titles=$(mediainfo --Output='Audio;%Title%\n' "$filename" 2>/dev/null | tr '[:upper:]' '[:lower:]')
+            if [[ "$audio_titles" =~ (mal|malayalam|ml) ]]; then
+                log_lib "Malayalam mentioned in audio track titles"
+                identified_lang="malayalam"
+            fi
+        fi
+    fi
+    if [ "$identified_lang" = "unknown" ]; then
+        # Enhanced pattern matching for Malayalam indicators in filename
+        if [[ "$filename_lower" =~ (mal|malayalam|ml)(\]|\}|\)|\s|\.|,|-|_|$) ]] || \
+           [[ "$filename_lower" =~ (\[|\{|\(|\s|\.|-|_)(mal|malayalam|ml)(\]|\}|\)|\s|\.|,|-|_|$) ]] || \
+           [[ "$filename_lower" =~ \bm(al)?\b ]]; then
+            log_lib "Malayalam detected in filename"
+            identified_lang="malayalam"
+        fi
+    fi
+    if [ "$identified_lang" = "unknown" ]; then
+        if [[ "$filename_lower" =~ (tamilmv|tamil|southindian) ]]; then
+            log_lib "Potential South Indian content detected, assuming malayalam for extraction purposes"
+            identified_lang="malayalam"
+        fi
+    fi
+    if [ "$identified_lang" = "unknown" ]; then
+        log_lib "No specific language identified, defaulting to 'unknown'"
+    fi
+    echo "$identified_lang"
+    return 0
+}
+
+# Check for required tools
+check_requirements() {
+    local missing_tools=()
     
-    # Skip extraction if file doesn't exist
-    if [ ! -f "$file" ]; then
-        log "ERROR: File not found for language detection: $file"
+    for tool in mediainfo mkvmerge; do
+        if ! command -v "$tool" &> /dev/null; then
+            missing_tools+=("$tool")
+        fi
+    done
+    
+    if [ ${#missing_tools[@]} -gt 0 ]; then
+        log_lib "ERROR: Required tools not found: ${missing_tools[*]}"
         return 1
-    fi
-    
-    # Use mkvmerge to get detailed track info for MKV files
-    if [ "${file##*.}" = "mkv" ] && command -v mkvmerge >/dev/null 2>&1; then
-        local track_info=$(mkvmerge -i "$file" 2>/dev/null)
-        local languages=""
-        
-        # Parse track info to find languages
-        while IFS= read -r line; do
-            if [[ "$line" == *"audio"* ]]; then
-                local track_id=$(echo "$line" | grep -o "Track ID [0-9]*" | cut -d' ' -f3)
-                
-                # Use mediainfo to get language
-                local lang=$(mediainfo "$file" | grep -A 10 "ID.*: $((track_id+1))" | grep "Language" | head -1)
-                
-                if [[ "$lang" == *"Malayalam"* ]]; then
-                    if [ -z "$languages" ]; then
-                        languages="mal"
-                    else
-                        languages="$languages,mal"
-                    fi
-                elif [[ "$lang" == *"Tamil"* ]]; then
-                    if [ -z "$languages" ]; then
-                        languages="ta"
-                    else
-                        languages="$languages,ta"
-                    fi
-                elif [[ "$lang" == *"Telugu"* ]]; then
-                    if [ -z "$languages" ]; then
-                        languages="te"
-                    else
-                        languages="$languages,te"
-                    fi
-                elif [[ "$lang" == *"Hindi"* ]]; then
-                    if [ -z "$languages" ]; then
-                        languages="hi"
-                    else
-                        languages="$languages,hi"
-                    fi
-                elif [[ "$lang" == *"Kannada"* ]]; then
-                    if [ -z "$languages" ]; then
-                        languages="kn"
-                    else
-                        languages="$languages,kn"
-                    fi
-                elif [[ "$lang" == *"English"* ]]; then
-                    if [ -z "$languages" ]; then
-                        languages="eng"
-                    else
-                        languages="$languages,eng"
-                    fi
-                fi
-            fi
-        done <<< "$track_info"
-        
-        if [ -n "$languages" ]; then
-            detected_languages="$languages"
-            log "MKVMerge detected languages: $detected_languages"
-            return 0
-        fi
-    fi
-    
-    # Fallback to mediainfo if mkvmerge didn't work
-    if command -v mediainfo >/dev/null 2>&1; then
-        # Get detailed track info
-        local mediainfo_output=$(mediainfo "$file" | grep "Language" | grep -v "Language_More")
-        
-        # Process each line to get language codes
-        local languages=""
-        while IFS= read -r line; do
-            if [[ "$line" == *"Malayalam"* ]]; then
-                if [ -z "$languages" ]; then
-                    languages="mal"
-                else
-                    languages="$languages,mal"
-                fi
-            elif [[ "$line" == *"Tamil"* ]]; then
-                if [ -z "$languages" ]; then
-                    languages="ta"
-                else
-                    languages="$languages,ta"
-                fi
-            elif [[ "$line" == *"Telugu"* ]]; then
-                if [ -z "$languages" ]; then
-                    languages="te"
-                else
-                    languages="$languages,te"
-                fi
-            elif [[ "$line" == *"Hindi"* ]]; then
-                if [ -z "$languages" ]; then
-                    languages="hi"
-                else
-                    languages="$languages,hi"
-                fi
-            elif [[ "$line" == *"Kannada"* ]]; then
-                if [ -z "$languages" ]; then
-                    languages="kn"
-                else
-                    languages="$languages,kn"
-                fi
-            elif [[ "$line" == *"English"* ]]; then
-                if [ -z "$languages" ]; then
-                    languages="eng"
-                else
-                    languages="$languages,eng"
-                fi
-            fi
-        done <<< "$mediainfo_output"
-        
-        if [ -n "$languages" ]; then
-            detected_languages="$languages"
-            log "MediaInfo detected languages: $detected_languages"
-            return 0
-        fi
-    elif command -v ffprobe >/dev/null 2>&1; then
-        # Extract audio tracks using ffprobe
-        local ffprobe_output=$(ffprobe -v error -select_streams a -show_entries stream_tags=language -of default=noprint_wrappers=1:nokey=1 "$file")
-        
-        # Process each line to get language codes
-        local languages=""
-        while read -r lang; do
-            if [ -n "$lang" ]; then
-                if [ -z "$languages" ]; then
-                    languages="$lang"
-                else
-                    languages="$languages,$lang"
-                fi
-            fi
-        done <<< "$ffprobe_output"
-        
-        if [ -n "$languages" ]; then
-            detected_languages="$languages"
-            log "FFprobe detected languages: $detected_languages"
-            return 0
-        fi
-    else
-        log "WARNING: Neither mediainfo nor ffprobe found, cannot extract language information"
-        return 1
-    fi
-    
-    # If we couldn't detect any languages, try to infer from filename
-    if [ -z "$detected_languages" ]; then
-        local filename=$(basename "$file")
-        if identify_language "$filename" == "malayalam"; then
-            detected_languages="mal"
-            log "Inferred language from filename: $detected_languages"
-        fi
     fi
     
     return 0
 }
 
-# Function to detect Malayalam audio tracks
-# Returns a comma-separated list of track IDs
-detect_malayalam_tracks() {
-    local file="$1"
-    local malayalam_tracks=""
+# Get audio track information with detailed logging
+get_audio_tracks() {
+    local input_file="$1"
+    log_lib "Getting audio tracks for: $(basename "$input_file")"
     
-    # Skip extraction if file doesn't exist
-    if [ ! -f "$file" ]; then
-        log "ERROR: File not found for Malayalam track detection: $file"
-        return 1
-    fi
+    # Get track IDs and languages in a clean format
+    local track_info
+    track_info=$(mediainfo --Output="Audio;%ID%:%Language%:%Title%\n" "$input_file" | grep -v "^::")
+    log_lib "Audio track info:"
+    echo "$track_info" | while IFS= read -r line; do
+        log_lib "  $line"
+    done
     
-    # Use mediainfo to get detailed track info
-    local mediainfo_output=$(mediainfo "$file")
-    
-    # Process each audio track
-    local track_id=0
-    local in_audio_section=false
-    local current_track_id=""
-    
-    while IFS= read -r line; do
-        # Check if we're entering an audio section
-        if [[ "$line" == *"Audio"* && "$line" == *"ID"* ]]; then
-            in_audio_section=true
-            # Extract the track ID
-            if [[ "$line" =~ ID[[:space:]]*:[[:space:]]*([0-9]+) ]]; then
-                current_track_id="${BASH_REMATCH[1]}"
-                # Adjust for 0-based indexing in mkvmerge
-                current_track_id=$((current_track_id - 1))
-            fi
-        fi
-        
-        # Check if we're leaving an audio section
-        if [[ "$in_audio_section" == true && "$line" == "" ]]; then
-            in_audio_section=false
-            current_track_id=""
-        fi
-        
-        # Check for Malayalam language in the current audio section
-        if [[ "$in_audio_section" == true && "$line" == *"Language"* && "$line" == *"Malayalam"* ]]; then
-            if [ -z "$malayalam_tracks" ]; then
-                malayalam_tracks="$current_track_id"
-            else
-                malayalam_tracks="$malayalam_tracks,$current_track_id"
-            fi
-        fi
-    done <<< "$mediainfo_output"
-    
-    # If no Malayalam tracks found, try using mkvmerge
-    if [ -z "$malayalam_tracks" ] && [ "${file##*.}" = "mkv" ] && command -v mkvmerge >/dev/null 2>&1; then
-        local track_info=$(mkvmerge -i "$file" 2>/dev/null)
-        
-        while IFS= read -r line; do
-            if [[ "$line" == *"audio"* ]]; then
-                local track_id=$(echo "$line" | grep -o "Track ID [0-9]*" | cut -d' ' -f3)
-                
-                if [[ "$line" == *"language:mal"* || "$line" == *"language:ml"* || "$line" == *"language:Malayalam"* ]]; then
-                    if [ -z "$malayalam_tracks" ]; then
-                        malayalam_tracks="$track_id"
-                    else
-                        malayalam_tracks="$malayalam_tracks,$track_id"
-                    fi
-                fi
-            fi
-        done <<< "$track_info"
-    fi
-    
-    # If still no Malayalam tracks found, try to infer from filename
-    if [ -z "$malayalam_tracks" ]; then
-        local filename=$(basename "$file")
-        if identify_language "$filename" == "malayalam"; then
-            # If it's a Malayalam file but no Malayalam tracks detected,
-            # use the first audio track
-            if [ "${file##*.}" = "mkv" ] && command -v mkvmerge >/dev/null 2>&1; then
-                local track_info=$(mkvmerge -i "$file" 2>/dev/null)
-                
-                # Get the first audio track
-                local first_audio=$(echo "$track_info" | grep -m1 "audio" | grep -o "Track ID [0-9]*" | cut -d' ' -f3)
-                if [ -n "$first_audio" ]; then
-                    malayalam_tracks="$first_audio"
-                    log "No Malayalam tracks found, using first audio track: $first_audio"
-                fi
-            fi
-        fi
-    fi
-    
-    echo "$malayalam_tracks"
+    # Extract just the track IDs
+    local track_ids
+    track_ids=$(echo "$track_info" | cut -d: -f1)
+    log_lib "Found audio track IDs: $track_ids"
+    echo "$track_ids"
 }
 
-# Function to detect English subtitle tracks
-# Returns a comma-separated list of track IDs
-detect_english_subtitle_tracks() {
-    local file="$1"
-    local english_subs=""
+# Find Malayalam audio track with enhanced detection
+find_malayalam_track() {
+    local input_file="$1"
+    local audio_tracks="$2"
+    local malayalam_track=""
     
-    # Skip extraction if file doesn't exist
-    if [ ! -f "$file" ]; then
-        log "ERROR: File not found for subtitle detection: $file"
-        return 1
-    fi
+    log_lib "Searching for Malayalam audio track..."
     
-    # Use mediainfo to get detailed track info
-    local mediainfo_output=$(mediainfo "$file")
+    # Get full track info for better language detection
+    local track_info
+    track_info=$(mediainfo --Output="Audio;%ID%:%Language%:%Title%\n" "$input_file")
     
-    # Process each subtitle track
-    local track_id=0
-    local in_text_section=false
-    local current_track_id=""
-    
-    while IFS= read -r line; do
-        # Check if we're entering a text/subtitle section
-        if [[ "$line" == *"Text"* && "$line" == *"ID"* ]]; then
-            in_text_section=true
-            # Extract the track ID
-            if [[ "$line" =~ ID[[:space:]]*:[[:space:]]*([0-9]+) ]]; then
-                current_track_id="${BASH_REMATCH[1]}"
-                # Adjust for 0-based indexing in mkvmerge
-                current_track_id=$((current_track_id - 1))
-            fi
-        fi
-        
-        # Check if we're leaving a text section
-        if [[ "$in_text_section" == true && "$line" == "" ]]; then
-            in_text_section=false
-            current_track_id=""
-        fi
-        
-        # Check for English language in the current text section
-        if [[ "$in_text_section" == true && "$line" == *"Language"* && "$line" == *"English"* ]]; then
-            if [ -z "$english_subs" ]; then
-                english_subs="$current_track_id"
-            else
-                english_subs="$english_subs,$current_track_id"
-            fi
-        fi
-    done <<< "$mediainfo_output"
-    
-    # If no English subs found, try using mkvmerge
-    if [ -z "$english_subs" ] && [ "${file##*.}" = "mkv" ] && command -v mkvmerge >/dev/null 2>&1; then
-        local track_info=$(mkvmerge -i "$file" 2>/dev/null)
-        
-        while IFS= read -r line; do
-            if [[ "$line" == *"subtitles"* ]]; then
-                local track_id=$(echo "$line" | grep -o "Track ID [0-9]*" | cut -d' ' -f3)
-                
-                if [[ "$line" == *"language:eng"* || "$line" == *"language:en"* || "$line" == *"language:English"* ]]; then
-                    if [ -z "$english_subs" ]; then
-                        english_subs="$track_id"
-                    else
-                        english_subs="$english_subs,$track_id"
-                    fi
-                fi
-            fi
-        done <<< "$track_info"
-    fi
-    
-    # If still no English subs found, try to get any subtitle track
-    if [ -z "$english_subs" ] && [ "${file##*.}" = "mkv" ] && command -v mkvmerge >/dev/null 2>&1; then
-        local track_info=$(mkvmerge -i "$file" 2>/dev/null)
-        
-        # Get the first subtitle track
-        local first_sub=$(echo "$track_info" | grep -m1 "subtitles" | grep -o "Track ID [0-9]*" | cut -d' ' -f3)
-        if [ -n "$first_sub" ]; then
-            english_subs="$first_sub"
-            log "No English subtitle tracks found, using first subtitle track: $first_sub"
-        fi
-    fi
-    
-    echo "$english_subs"
-}
-
-# Function to clean filename by removing language tags
-clean_language_tags() {
-    local filename="$1"
-    
-    # Remove language tags like [Tam + Tel + Hin + Mal + Kan]
-    local cleaned=$(echo "$filename" | sed -E 's/\[Tam \+ Tel \+ Hin \+ Mal \+ Kan\]//g')
-    cleaned=$(echo "$cleaned" | sed -E 's/\[.*Mal.*\]//g')
-    
-    # Remove extra spaces
-    cleaned=$(echo "$cleaned" | sed -E 's/\s+/ /g' | sed -E 's/^\s+|\s+$//g')
-    
-    echo "$cleaned"
-}
-
-# Function to extract Malayalam audio tracks from MKV file
-# Returns the path to the new file with only Malayalam audio
-extract_malayalam_audio() {
-    local file="$1"
-    local output_file=""
-    
-    # Skip if not an MKV file
-    if [[ "${file##*.}" != "mkv" ]]; then
-        log "Not an MKV file, skipping Malayalam audio extraction: $(basename "$file")"
-        return 1
-    fi
-    
-    # Check for required tools
-    if ! command -v mkvmerge >/dev/null 2>&1; then
-        log "mkvmerge not found, cannot extract tracks from MKV - using original file"
-        return 1
-    fi
-    
-    # Detect Malayalam tracks
-    local malayalam_tracks=$(detect_malayalam_tracks "$file")
-    
-    if [ -z "$malayalam_tracks" ]; then
-        log "No Malayalam audio tracks found in: $(basename "$file")"
-        return 1
-    fi
-    
-    log "Found Malayalam audio tracks: $malayalam_tracks"
-    
-    # Detect English subtitle tracks
-    local english_subs=$(detect_english_subtitle_tracks "$file")
-    
-    if [ -n "$english_subs" ]; then
-        log "Found English subtitle tracks: $english_subs"
-    else
-        log "No English subtitle tracks found"
-    fi
-    
-    # Create a temporary directory for processing
-    local temp_dir=$(mktemp -d)
-    local temp_file="$temp_dir/$(basename "$file")"
-    
-    # Build mkvmerge command for extraction
-    local mkvmerge_cmd="mkvmerge -o \"$temp_file\" "
-    
-    # Add video tracks (all of them)
-    mkvmerge_cmd+="--video-tracks all "
-    
-    # Add only Malayalam audio tracks
-    mkvmerge_cmd+="--audio-tracks $malayalam_tracks "
-    
-    # Add subtitle tracks if found
-    if [ -n "$english_subs" ]; then
-        mkvmerge_cmd+="--subtitle-tracks $english_subs "
-    else
-        mkvmerge_cmd+="--no-subtitles "
-    fi
-    
-    # Add the input file
-    mkvmerge_cmd+="--no-chapters \"$file\""
-    
-    log "Running MKVMerge command: $mkvmerge_cmd"
-    eval $mkvmerge_cmd
-    
-    if [ $? -eq 0 ] && [ -f "$temp_file" ]; then
-        log "Successfully extracted Malayalam audio to: $temp_file"
-        output_file="$temp_file"
-        return 0
-    else
-        log "ERROR: Failed to extract Malayalam audio, using original file"
-        rm -rf "$temp_dir"
-        return 1
-    fi
-}
-
-# Function to process a media file for language extraction
-process_language_extraction() {
-    local file="$1"
-    local language="$2"
-    local file_extension="${file##*.}"
-    local file_extension_lower=$(echo "$file_extension" | tr '[:upper:]' '[:lower:]')
-    
-    # Skip if not a video file
-    if ! [[ "$file_extension_lower" =~ ^(mkv|mp4|avi|m4v|mov)$ ]]; then
-        log "Not a video file, skipping language extraction: $(basename "$file")"
-        return 1
-    fi
-    
-    # Skip if not Malayalam or extraction is disabled
-    if [ "$language" != "malayalam" ] || [ "$EXTRACT_AUDIO_TRACKS" != "true" ]; then
-        log "Skipping language extraction for: $(basename "$file")"
-        return 1
-    fi
-    
-    # For MKV files, try to extract Malayalam audio
-    if [ "$file_extension_lower" = "mkv" ]; then
-        log "Attempting to extract Malayalam audio from: $(basename "$file")"
-        
-        # Clean the filename by removing language tags
-        local clean_filename=$(clean_language_tags "$(basename "$file")")
-        log "Cleaned filename (removed language tags): $clean_filename"
-        
-        # Create a temporary file with the cleaned name
-        local temp_dir=$(mktemp -d)
-        local temp_file="$temp_dir/$clean_filename"
-        cp "$file" "$temp_file"
-        
-        # Extract Malayalam audio
-        local extracted_file=""
-        extracted_file=$(extract_malayalam_audio "$temp_file")
-        local extraction_status=$?
-        
-        # Clean up the temporary file
-        rm -f "$temp_file"
-        
-        if [ $extraction_status -eq 0 ] && [ -f "$extracted_file" ]; then
-            log "Successfully extracted Malayalam audio to: $(basename "$extracted_file")"
-            echo "$extracted_file"
+    # First try: Look for explicit Malayalam language tag
+    while IFS=: read -r id lang title; do
+        if [[ -n "$id" && ("$lang" =~ ^(mal|ml)$ || "$title" =~ (malayalam|mal|ml)) ]]; then
+            malayalam_track="$id"
+            log_lib "Found Malayalam audio track by language/title: $malayalam_track"
+            echo "$malayalam_track"
             return 0
-        else
-            log "No Malayalam audio extracted, using original file"
-            rm -rf "$temp_dir"
+        fi
+    done <<< "$track_info"
+    
+    # Second try: Check track 5 (common pattern in South Indian content)
+    if echo "$audio_tracks" | grep -q "^5$"; then
+        malayalam_track="5"
+        log_lib "Using track 5 as Malayalam track (common pattern)"
+        echo "$malayalam_track"
+        return 0
+    fi
+    
+    # Third try: Check track 4 (alternate common pattern)
+    if echo "$audio_tracks" | grep -q "^4$"; then
+        malayalam_track="4"
+        log_lib "Using track 4 as Malayalam track (alternate pattern)"
+        echo "$malayalam_track"
+        return 0
+    fi
+    
+    log_lib "No Malayalam audio track found"
+    return 1
+}
+
+# Find English subtitle track
+find_english_subtitle() {
+    local input_file="$1"
+    log_lib "Searching for English subtitle track..."
+    
+    local subtitle_info
+    subtitle_info=$(mediainfo --Output="Text;%ID%:%Language%:%Title%\n" "$input_file" | grep -v "^::")
+    log_lib "Found subtitle tracks: $subtitle_info"
+    
+    local eng_track
+    eng_track=$(echo "$subtitle_info" | grep -i ":en\(g\)\?:" | cut -d: -f1 | head -1)
+    
+    if [ -n "$eng_track" ]; then
+        log_lib "Found English subtitle track: $eng_track"
+        echo "$eng_track"
+        return 0
+    fi
+    
+    log_lib "No English subtitle track found"
+    return 1
+}
+
+# Verify output file
+verify_output() {
+    local output_file="$1"
+    
+    if [ ! -f "$output_file" ] || [ ! -s "$output_file" ]; then
+        log_lib "Output file not created or empty"
+        return 1
+    fi
+    
+    local out_lang
+    out_lang=$(mediainfo --Output="Audio;Language=%Language%" "$output_file")
+    log_lib "Output file audio language: $out_lang"
+    
+    return 0
+}
+
+# Ensure processed directory exists with proper permissions
+ensure_processed_dir() {
+    if [ ! -d "$PROCESSED_DIR" ]; then
+        log_lib "Creating processed directory: $PROCESSED_DIR"
+        if ! mkdir -p "$PROCESSED_DIR"; then
+            log_lib "Failed to create processed directory"
             return 1
         fi
-    else
-        log "Not an MKV file, skipping Malayalam audio extraction: $(basename "$file")"
+        # Set ownership to current user since it's in user's home directory
+        if ! chmod 755 "$PROCESSED_DIR"; then
+            log_lib "Failed to set mode on processed directory"
+            return 1
+        fi
+    fi
+    return 0
+}
+
+# Extracts MKV tracks. Outputs the final file path to STDOUT on success.
+extract_mkv_tracks() {
+    local input_file="$1"
+    local output_file="$2"
+    local language_code="$3" # Expecting 'mal' or 'malayalam'
+
+    if [ -z "$input_file" ] || [ -z "$output_file" ]; then
+        log_lib "ERROR: Input or output file path missing in extract_mkv_tracks"
         return 1
     fi
+
+    log_lib "Starting extraction for: $(basename "$input_file") -> $(basename "$output_file")"
+
+    # Ensure output directory exists
+    local output_dir=$(dirname "$output_file")
+    if [ ! -d "$output_dir" ]; then
+        log_lib "Creating output directory: $output_dir"
+        mkdir -p "$output_dir"
+        if [ $? -ne 0 ]; then
+            log_lib "ERROR: Failed to create output directory: $output_dir"
+            return 1
+        fi
+        chmod 755 "$output_dir" # Ensure permissions
+    fi
+
+    # Show all tracks in file for debugging
+    log_lib "All tracks in file:"
+    mediainfo "$input_file" | grep -E "^(Audio|Text)" | grep -E "Track |ID |Language" | while IFS= read -r line; do
+        log_lib "  $line"
+    done
+
+    # Find Malayalam audio track ID
+    local audio_tracks=$(mediainfo "$input_file" | grep -A 10 "Audio" | grep -E "ID.*: ([0-9]+)" | sed -E 's/.*ID.*: ([0-9]+).*/\1/')
+    log_lib "Available audio tracks: $audio_tracks"
+    local malayalam_track=""
+
+    # Loop through each audio track to find Malayalam
+    for track in $audio_tracks; do
+        local lang=$(mediainfo "$input_file" | grep -A 20 "Audio #$track" | grep -i "Language" | grep -i -E "Malayalam|Mal|ML|mal|ml|^m$|^M$")
+        if [[ -n "$lang" ]]; then
+            malayalam_track=$track
+            log_lib "Found Malayalam audio track: $malayalam_track"
+            break
+        fi
+        
+        # Also check track title for Malayalam indicators
+        local title=$(mediainfo "$input_file" | grep -A 20 "Audio #$track" | grep -i "Title" | grep -i -E "Malayalam|Mal|ML|mal|ml")
+        if [[ -n "$title" ]]; then
+            malayalam_track=$track
+            log_lib "Found Malayalam audio track via title: $malayalam_track"
+            break
+        fi
+    done
+
+    # If no Malayalam track found by language, use track 5 (common in South Indian content)
+    if [[ -z "$malayalam_track" ]]; then
+        malayalam_track="5"
+        log_lib "No Malayalam track detected by language, using track 5"
+    fi
+
+    # Find English subtitle track
+    local subtitle_tracks=$(mediainfo "$input_file" | grep -A 10 "Text" | grep -E "ID.*: ([0-9]+)" | sed -E 's/.*ID.*: ([0-9]+).*/\1/')
+    local english_subtitle=""
+
+    # Loop through each subtitle track to find English
+    for track in $subtitle_tracks; do
+        local lang=$(mediainfo "$input_file" | grep -A 20 "Text #$track" | grep -i "Language" | grep -i "English")
+        if [[ -n "$lang" ]]; then
+            english_subtitle=$track
+            log_lib "Found English subtitle track: $english_subtitle"
+            break
+        fi
+    done
+
+    # Prepare mkvmerge command
+    local subtitle_option=""
+    if [[ -n "$english_subtitle" ]]; then
+        subtitle_option="--subtitle-tracks $english_subtitle"
+    else
+        subtitle_option="--no-subtitles"
+    fi
+
+    log_lib "Running mkvmerge extraction with Malayalam audio (track $malayalam_track): $(basename "$input_file")"
+    mkvmerge -o "$output_file" \
+        --audio-tracks "$malayalam_track" \
+        $subtitle_option \
+        "$input_file"
+    local mkvmerge_status=$?
+
+    if [ $mkvmerge_status -ne 0 ]; then
+        log_lib "mkvmerge extraction failed with status: $mkvmerge_status"
+        [ -f "$output_file" ] && rm -f "$output_file"
+        return 1
+    fi
+
+    if [ ! -s "$output_file" ]; then
+        log_lib "Output file not created or empty: $output_file"
+        return 1
+    fi
+
+    # Verify the language of the audio track in the output file
+    local out_lang=$(mediainfo "$output_file" | grep -A 20 "Audio" | grep -i "Language" | head -1)
+    log_lib "Output file audio language: $out_lang"
+
+    log_lib "Extraction completed successfully to: $output_file"
+    # **CRITICAL: Output path to STDOUT only on success - must have the unique marker**
+    # Use a very clear marker that the main script can look for
+    echo "EXTRACTION_OUTPUT_PATH_MARKER:$output_file"
+    return 0
 }
+
+# Main processing logic when run as script
+process_language_extraction_main() {
+    local input_file="$1"
+    local identified_language="$2" # Should be 'mal' or similar
+    local target_output_file="$3"
+
+    # Validate arguments
+    if [ -z "$input_file" ] || [ -z "$identified_language" ] || [ -z "$target_output_file" ]; then
+        log_lib "ERROR: Missing arguments. Usage: $0 <input_file> <language_code> <target_output_file>"
+        exit 1 # Indicate failure
+    fi
+
+    log_lib "===== Standalone Extraction Script START ====="
+    log_lib "Input file: $input_file"
+    log_lib "Language code: $identified_language" # Assume this is passed correctly now
+    log_lib "Target output file: $target_output_file"
+
+    local file_extension="${input_file##*.}"
+    local file_extension_lower=$(echo "$file_extension" | tr '[:upper:]' '[:lower:]')
+
+    # Check if extraction should be performed
+    # Support all possible formats of Malayalam language codes: Mal, mal, ML, ml, m, M, Malayalam, malayalam
+    if [[ "$file_extension_lower" =~ ^(mkv|mp4)$ ]] && [ "$EXTRACT_AUDIO_TRACKS" = true ] && \
+       [[ "${identified_language,,}" =~ ^(mal|malayalam|ml|m)$ ]]; then
+        # Normalize language code to "mal" for internal processing
+        identified_language="mal"
+        log_lib "Normalized language code to 'mal' for processing"
+        
+        # Ensure target directory exists
+        local target_dir=$(dirname "$target_output_file")
+        if [ ! -d "$target_dir" ]; then
+            log_lib "Creating target directory for extraction: $target_dir"
+            mkdir -p "$target_dir"
+            if [ $? -ne 0 ]; then
+                log_lib "ERROR: Failed to create target directory: $target_dir"
+                exit 1 # Failure
+            fi
+        fi
+
+        # Execute the core extraction function
+        extract_mkv_tracks "$input_file" "$target_output_file" "$identified_language"
+        local extract_status=$?
+
+        log_lib "Core extraction status: $extract_status"
+
+        if [ $extract_status -eq 0 ]; then
+            # Success: extract_mkv_tracks already printed path to stdout
+            log_lib "Extraction script finished successfully."
+            exit 0 # Success
+        else
+            log_lib "ERROR: Core extraction failed with status $extract_status."
+            exit 1 # Failure
+        fi
+    else
+        log_lib "Skipping extraction based on filetype/config/language."
+        # Return the original input file when skipping extraction
+        # Use the same marker for consistent handling by the main script
+        echo "EXTRACTION_OUTPUT_PATH_MARKER:$input_file"
+        exit 0
+    fi
+}
+
+# --- Script Entry Point --- #
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    # Check required tools if run directly
+    # check_required_tools || exit 1
+
+    # Execute the main logic with command-line arguments
+    process_language_extraction_main "$1" "$2" "$3"
+fi
