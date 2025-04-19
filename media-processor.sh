@@ -22,10 +22,10 @@ DEFAULT_MEDIA_PATH="media"
 
 # Language extraction settings
 EXTRACT_AUDIO_TRACKS=true        # Extract specific language audio tracks
-EXTRACT_SUBTITLES=true           # Extract subtitles
-PREFERRED_LANGUAGE="mal"         # Primary preferred language 
-PREFERRED_AUDIO_LANGS="mal,eng"  # Preferred audio languages (comma separated)
-PREFERRED_SUBTITLE_LANGS="eng"   # Preferred subtitle languages (comma separated)
+# EXTRACT_SUBTITLES=true           # (Handled within extraction script now)
+PREFERRED_LANGUAGE="mal"         # Primary preferred language for extraction target
+# PREFERRED_AUDIO_LANGS="mal,eng"  # (Handled within extraction script)
+# PREFERRED_SUBTITLE_LANGS="eng"   # (Handled within extraction script)
 
 # Cleanup configuration
 CLEANUP_RAR_FILES=true
@@ -34,83 +34,118 @@ CLEAN_ORIGINAL_FILES=true      # Set to true to delete original files after succ
 MIN_RAR_AGE_HOURS=0             # Set to 0 for immediate cleanup after processing
 
 # Create log file if it doesn't exist
-touch $LOG_FILE
-echo "$(date) - Media processor started" >> $LOG_FILE
+touch "$LOG_FILE"
+echo "$(date) - Media processor started" >> "$LOG_FILE"
+
+# Import our libraries (NO LONGER SOURCING language-extraction.sh)
+LIB_DIR="$(dirname "$0")/lib"
+source "$LIB_DIR/logger.sh"
+source "$LIB_DIR/file-transfer.sh"
+source "$LIB_DIR/config.sh"
+source "$LIB_DIR/dashboard-api.sh"
+source "$LIB_DIR/media-utils.sh"
+
+# Define path to the language extraction script
+LANGUAGE_EXTRACTION_SCRIPT="$LIB_DIR/language-extraction.sh"
 
 # Function to log messages with timestamp
 log() {
     local message="$(date) - $1"
-    echo "$message" >> $LOG_FILE
+    echo "$message" >> "$LOG_FILE"
     echo "$message"
 }
 
 # Check required tools
 check_required_tools() {
     local missing_tools=()
-    
+
     # Check for smbclient
     if ! command -v smbclient &> /dev/null; then
         missing_tools+=("smbclient")
     fi
-    
+
     # Check for mediainfo
     if ! command -v mediainfo &> /dev/null; then
         missing_tools+=("mediainfo")
     fi
-    
+
     # Check for ffmpeg
     if ! command -v ffmpeg &> /dev/null; then
         missing_tools+=("ffmpeg")
     fi
-    
+
     # Check for mkvmerge and mkvextract
     if ! command -v mkvmerge &> /dev/null; then
         missing_tools+=("mkvmerge")
     fi
-    
+
     if ! command -v mkvextract &> /dev/null; then
         missing_tools+=("mkvextract")
     fi
-    
+
     if [ ${#missing_tools[@]} -gt 0 ]; then
         log "ERROR: Missing required tools: ${missing_tools[*]}"
         log "Please install them with: sudo apt-get install ${missing_tools[*]}"
         return 1
     fi
-    
+
     return 0
 }
 
 # Function to clean filenames
 clean_filename() {
     local filename="$1"
-    
+
     # Remove common prefixes and references
     local cleaned=$(echo "$filename" | sed -E 's/^www\.[0-9]*TamilMV\.[a-zA-Z]{2,3}\s*-\s*//i')
     cleaned=$(echo "$cleaned" | sed -E 's/^TamilMV\s*-\s*//i')
-    
+
     # Remove Sanet.st prefixes - making these patterns more specific
     cleaned=$(echo "$cleaned" | sed -E 's/^Sanet\.st\.//i')
     cleaned=$(echo "$cleaned" | sed -E 's/^Sanet\.st\s*-\s*//i')
     cleaned=$(echo "$cleaned" | sed -E 's/^Sanet\s*-\s*//i')
-    
+
     # Remove Softarchive.is prefixes
     cleaned=$(echo "$cleaned" | sed -E 's/^Softarchive\.is\.//i')
     cleaned=$(echo "$cleaned" | sed -E 's/^Softarchive\.is\s*-\s*//i')
-    
+
     # Replace underscores with spaces
     cleaned=$(echo "$cleaned" | sed 's/_/ /g')
-    
+
+    # Remove curly braces and their content (including any timestamps, dates, or MediaIn)
+    cleaned=$(echo "$cleaned" | sed -E 's/\{[^}]*\}//g')
+    # Remove any leftover date/time patterns (e.g. Wed Apr 16 ...)
+    cleaned=$(echo "$cleaned" | sed -E 's/[A-Z][a-z]{2} [A-Z][a-z]{2} [ 0-9:]+[AP]M [A-Z]{3} [0-9]{4}//g')
+    # Remove any 'MediaIn' or similar tags
+    cleaned=$(echo "$cleaned" | sed -E 's/MediaIn//g')
+    # Remove square brackets with non-standard tags (keep [1080p], [720p], etc.)
+    cleaned=$(echo "$cleaned" | sed -E 's/\[[^0-9][^\]]*\]//g')
+
+    # Remove repeated extensions (e.g., .mkv.mkv)
+    cleaned=$(echo "$cleaned" | sed -E 's/(\.[a-zA-Z0-9]{2,5})+(\.[a-zA-Z0-9]{2,5})$/\2/')
+    # Remove duplicate tags and repeated words
+    cleaned=$(echo "$cleaned" | awk '{for(i=1;i<=NF;i++){if(!a[$i]++){printf "%s ", $i}}} END{print ""}' | sed -E 's/\s+/ /g' | sed -E 's/^\s+|\s+$//g')
+    # Remove forbidden SMB characters
+    cleaned=$(echo "$cleaned" | tr ':*/?"<>|\\' '--------')
     # Remove extra spaces
     cleaned=$(echo "$cleaned" | sed -E 's/\s+/ /g' | sed -E 's/^\s+|\s+$//g')
-    
+    # Truncate to 100 chars (before extension)
+    local ext=""
+    if [[ "$cleaned" =~ (\.[a-zA-Z0-9]{2,5})$ ]]; then
+        ext="${BASH_REMATCH[1]}"
+        cleaned="${cleaned%$ext}"
+        cleaned="${cleaned:0:100}$ext"
+    else
+        cleaned="${cleaned:0:100}"
+    fi
+
     echo "$cleaned"
 }
 
 # Function to determine if a file is a TV show or movie
 identify_media_type() {
     local filename="$1"
-    
+
     # Check for TV show patterns
     if echo "$filename" | grep -E 'S[0-9]{2}E[0-9]{2}|Season\s?[0-9]{1,2}\s?Episode\s?[0-9]{1,2}|[0-9]{1,2}x[0-9]{1,2}|Ep\s?[0-9]{1,2}' -i > /dev/null; then
         echo "tvshow"
@@ -119,57 +154,82 @@ identify_media_type() {
     fi
 }
 
-# Function to determine if content is Malayalam or English
+# Function to determine if content is Malayalam or English (using mediainfo/filename)
 identify_language() {
-    local filename="$1"
-    
-    # Check if it has Malayalam in the filename (including [Tam + ... + Mal] format)
-    if echo "$filename" | grep -i "Malayalam" > /dev/null || \
-       echo "$filename" | grep -i "\[.*Mal.*\]" > /dev/null || \
-       echo "$filename" | grep -i "Mal" > /dev/null; then
-        echo "malayalam"
-    else
-        echo "english"
+    local file="$1"
+    local detected_language="unknown"
+
+    if [ ! -f "$file" ]; then
+        log "Identify Language: File not found '$file'"
+        echo "$detected_language"
+        return 1
     fi
+
+    log "Identify Language: Checking '$file'"
+
+    # Check content first (more reliable)
+    if command -v mediainfo >/dev/null 2>&1; then
+        local audio_langs=$(mediainfo --Output='Audio;%Language/String%\n' "$file" 2>/dev/null | tr '[:upper:]' '[:lower:]')
+        log "Identify Language: mediainfo found languages: $audio_langs"
+        if [[ "$audio_langs" =~ (mal|malayalam|ml) ]]; then
+            detected_language="malayalam"
+        elif [[ "$audio_langs" =~ (eng|english) ]]; then
+             detected_language="english"
+        fi
+
+        # If still unknown, check titles
+        if [ "$detected_language" = "unknown" ]; then
+            local audio_titles=$(mediainfo --Output='Audio;%Title%\n' "$file" 2>/dev/null | tr '[:upper:]' '[:lower:]')
+             if [[ "$audio_titles" =~ (mal|malayalam|ml) ]]; then
+                 detected_language="malayalam"
+                 log "Identify Language: Found malayalam in audio title"
+             elif [[ "$audio_titles" =~ (eng|english) ]]; then
+                 detected_language="english"
+                 log "Identify Language: Found english in audio title"
+             fi
+        fi
+    fi
+
+    # Check filename if still unknown
+    if [ "$detected_language" = "unknown" ]; then
+        local filename_lower=$(basename "${file,,}")
+        log "Identify Language: Checking filename '$filename_lower'"
+        if [[ "$filename_lower" =~ (mal|malayalam|ml)(\]|\}|\)|\s|\.|,|-|_|$) ]] || \
+           [[ "$filename_lower" =~ (\[|\{|\(|\s|\.|-|_)(mal|malayalam|ml)(\]|\}|\)|\s|\.|,|-|_|$) ]]; then
+            detected_language="malayalam"
+        # Broaden english check slightly
+        elif [[ "$filename_lower" =~ (eng|english)(\]|\}|\)|\s|\.|,|-|_|$) ]] || \
+             [[ "$filename_lower" =~ (\[|\{|\(|\s|\.|-|_)(eng|english)(\]|\}|\)|\s|\.|,|-|_|$) ]]; then
+            detected_language="english"
+        # Check for South Indian keywords as fallback for malayalam
+        elif [[ "$filename_lower" =~ (tamilmv|tamil|southindian) ]]; then
+            log "Identify Language: Potential South Indian filename, assuming malayalam"
+            detected_language="malayalam"
+        fi
+    fi
+
+    log "Identify Language: Final detected language: $detected_language"
+    echo "$detected_language"
+    return 0
 }
 
-# Function to extract language tracks from a media file
-extract_language_tracks() {
-    local file="$1"
-    local detected_languages=""
-    
-    # Skip extraction if file doesn't exist
-    if [ ! -f "$file" ]; then
-        log "ERROR: File not found for language detection: $file"
-        return 1
-    fi
-    
-    # Check for mediainfo or ffprobe
-    if command -v mediainfo >/dev/null 2>&1; then
-        # Extract audio tracks using mediainfo
-        detected_languages=$(mediainfo --Output="Audio;%Language%" "$file" | sort | uniq | tr '\n' ',' | sed 's/,$//')
-        log "MediaInfo detected languages: $detected_languages"
-        return 0
-    elif command -v ffprobe >/dev/null 2>&1; then
-        # Extract audio tracks using ffprobe
-        detected_languages=$(ffprobe -v error -select_streams a -show_entries stream_tags=language -of compact=p=0:nk=1 "$file" | sort | uniq | tr '\n' ',' | sed 's/,$//')
-        log "FFprobe detected languages: $detected_languages"
-        return 0
-    else
-        log "WARNING: Neither mediainfo nor ffprobe found, cannot extract language information"
-        return 1
-    fi
+# Function to clean language tags from filename (used for final name)
+clean_language_tags() {
+    local filename="$1"
+    echo "$filename" | sed -E 's/\[(mal|malayalam|tamil|telugu|hindi|kannada|eng|english)\]//gi' | \
+                       sed -E 's/\((mal|malayalam|tamil|telugu|hindi|kannada|eng|english)\)//gi' | \
+                       sed -E 's/-+(mal|malayalam|tamil|telugu|hindi|kannada|eng|english)//gi'
 }
 
 # Function to extract resolution from media file
 extract_resolution() {
     local file="$1"
     local resolution=""
-    
+
     if command -v mediainfo >/dev/null 2>&1; then
         local width=$(mediainfo --Output="Video;%Width%" "$file" | head -n1)
         local height=$(mediainfo --Output="Video;%Height%" "$file" | head -n1)
-        
+
         if [ -n "$width" ] && [ -n "$height" ]; then
             # Determine standard resolution name
             if [ "$height" -ge 2160 ]; then
@@ -188,11 +248,11 @@ extract_resolution() {
         fi
     elif command -v ffprobe >/dev/null 2>&1; then
         local video_info=$(ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=s=x:p=0 "$file")
-        
+
         if [ -n "$video_info" ]; then
             local width=$(echo "$video_info" | cut -d'x' -f1)
             local height=$(echo "$video_info" | cut -d'x' -f2)
-            
+
             # Determine standard resolution name
             if [ "$height" -ge 2160 ]; then
                 resolution="4K"
@@ -209,7 +269,7 @@ extract_resolution() {
             fi
         fi
     fi
-    
+
     echo "$resolution"
 }
 
@@ -217,10 +277,10 @@ extract_resolution() {
 extract_codec() {
     local file="$1"
     local codec=""
-    
+
     if command -v mediainfo >/dev/null 2>&1; then
         codec=$(mediainfo --Output="Video;%Format%" "$file" | head -n1)
-        
+
         # Simplify codec names
         case "$codec" in
             "AVC"|"H.264"|"H264"|"MPEG-4 AVC")
@@ -235,7 +295,7 @@ extract_codec() {
         esac
     elif command -v ffprobe >/dev/null 2>&1; then
         codec=$(ffprobe -v error -select_streams v:0 -show_entries stream=codec_name -of default=noprint_wrappers=1:nokey=1 "$file")
-        
+
         # Simplify codec names
         case "$codec" in
             "h264"|"libx264"|"avc")
@@ -249,14 +309,14 @@ extract_codec() {
                 ;;
         esac
     fi
-    
+
     echo "$codec"
 }
 
 # Function to get formatted file size
 get_formatted_size() {
     local file="$1"
-    local size=$(du -h "$file" 2>/dev/null | cut -f1)
+    local size=$(du -sh "$file" 2>/dev/null | cut -f1)
     echo "$size"
 }
 
@@ -264,7 +324,7 @@ get_formatted_size() {
 check_subtitles() {
     local file="$1"
     local has_subtitles=false
-    
+
     if command -v mediainfo >/dev/null 2>&1; then
         local sub_count=$(mediainfo --Output="Text;%StreamCount%" "$file" | wc -l)
         if [ "$sub_count" -gt 0 ]; then
@@ -276,7 +336,7 @@ check_subtitles() {
             has_subtitles=true
         fi
     fi
-    
+
     echo "$has_subtitles"
 }
 
@@ -284,13 +344,18 @@ check_subtitles() {
 get_subtitle_languages() {
     local file="$1"
     local sub_langs=""
-    
+
     if command -v mediainfo >/dev/null 2>&1; then
-        sub_langs=$(mediainfo --Output="Text;%Language%" "$file" | sort | uniq | tr '\n' ',' | sed 's/,$//')
+        sub_langs=$(mediainfo --Output="Text;%Language/String%" "$file" | sort -u | tr '\n' ',' | sed 's/,$//' | sed 's/,/, /g')
     elif command -v ffprobe >/dev/null 2>&1; then
-        sub_langs=$(ffprobe -v error -select_streams s -show_entries stream_tags=language -of compact=p=0:nk=1 "$file" | sort | uniq | tr '\n' ',' | sed 's/,$//')
+        sub_langs=$(ffprobe -v error -select_streams s -show_entries stream_tags=language -of compact=p=0:nk=1 "$file" | sort -u | tr '\n' ',' | sed 's/,$//' | sed 's/,/, /g')
     fi
-    
+
+    # Default to eng if empty or contains unknown/und
+    if [[ -z "$sub_langs" || "$sub_langs" == "Unknown" || "$sub_langs" == "und" ]]; then
+        sub_langs="eng"
+    fi
+
     echo "$sub_langs"
 }
 
@@ -298,433 +363,362 @@ get_subtitle_languages() {
 extract_season_episode() {
     local filename="$1"
     local season_ep=""
-    
+
     # Try to match S01E01 format
-    if [[ $filename =~ S([0-9]+)E([0-9]+) ]]; then
+    if [[ $filename =~ S([0-9]+)[ ._-]*E([0-9]+) ]]; then
         local season="${BASH_REMATCH[1]}"
         local episode="${BASH_REMATCH[2]}"
-        season_ep="S${season}E${episode}"
+        season_ep=$(printf "S%02dE%02d" "$((10#$season))" "$((10#$episode))") # Force base 10
     # Try alternative formats like 1x01
-    elif [[ $filename =~ ([0-9]+)x([0-9]+) ]]; then
+    elif [[ $filename =~ ([0-9]+)[xX]([0-9]+) ]]; then
         local season="${BASH_REMATCH[1]}"
         local episode="${BASH_REMATCH[2]}"
         # Reformat to standard S01E01 format
-        season_ep=$(printf "S%02dE%02d" "$season" "$episode")
-    # Try to extract from filenames with just 101, 102 etc.
-    elif [[ $filename =~ [^0-9]([0-9])([0-9]{2})[^0-9] ]]; then
+        season_ep=$(printf "S%02dE%02d" "$((10#$season))" "$((10#$episode))")
+    # Try to extract from filenames with just 101, 102 etc. (if clearly delimited)
+    elif [[ $filename =~ [ ._-]([0-9])([0-9]{2})[ ._-] ]]; then
         local season="${BASH_REMATCH[1]}"
         local episode="${BASH_REMATCH[2]}"
-        season_ep=$(printf "S%02dE%02d" "$season" "$episode")
+        season_ep=$(printf "S%02dE%02d" "$((10#$season))" "$((10#$episode))")
+    # Try episode only like Ep 01 or Episode 1
+    elif [[ $filename =~ [Ee][Pp][ ._-]*([0-9]+) ]]; then
+        local episode="${BASH_REMATCH[1]}"
+        # Assume Season 1 if only episode is found
+        season_ep=$(printf "S01E%02d" "$((10#$episode))")
     fi
-    
+
     echo "$season_ep"
 }
 
-# Function to format the final media filename with all metadata
-format_media_filename() {
-    local file="$1"
-    local base_name="$2"
-    local languages="$3"
-    local extension="${file##*.}"
-    
-    # Get media information
-    local resolution=$(extract_resolution "$file")
-    local codec=$(extract_codec "$file")
-    local size=$(get_formatted_size "$file")
-    local has_subs=$(check_subtitles "$file")
-    local sub_langs=$(get_subtitle_languages "$file")
-    
-    # If we weren't able to detect the languages from the file
-    if [ -z "$languages" ]; then
-        # Try to identify from the filename
-        local filename=$(basename "$file")
-        languages=$(identify_language "$filename")
-        if [ -z "$languages" ]; then
-            languages="Unknown"
+# Function to format the final media filename
+format_final_filename() {
+    local cleaned_title="$1" # Title already cleaned of language tags etc.
+    local media_type="$2"
+    local language="$3"
+    local has_subtitles="$4"
+    local subtitle_langs="$5"
+    local video_quality="$6"
+    local file_size="$7"
+    local extension="${8:-mkv}" # Expecting extension
+
+    local final_name=""
+    local season_episode=""
+
+    if [ "$media_type" = "tvshow" ]; then
+        local series_name=$(extract_series_name "$cleaned_title")
+        season_episode=$(extract_season_episode "$cleaned_title") # Use cleaned title
+        if [ -n "$season_episode" ]; then
+            final_name="$series_name $season_episode"
+        else
+            final_name="$series_name"
+             log "WARNING: Could not extract SxxExx from TV Show: $cleaned_title"
+        fi
+    else # Movie
+        local movie_title=$(get_folder_name "$cleaned_title") # Use get_folder_name logic
+        local year=$(echo "$cleaned_title" | grep -oE '\b(19[0-9]{2}|20[0-9]{2})\b' | tail -n1)
+        final_name="$movie_title"
+        if [ -n "$year" ]; then
+            final_name="$final_name ($year)"
         fi
     fi
-    
-    # Format the filename
-    local formatted_name="${base_name}"
-    
-    # Add resolution if available
-    if [ -n "$resolution" ]; then
-        formatted_name="${formatted_name} [${resolution}"
-        
-        # Add codec if available
-        if [ -n "$codec" ]; then
-            formatted_name="${formatted_name} ${codec}"
-        fi
-        
-        formatted_name="${formatted_name}]"
+
+    # Add quality tag if available
+    if [ -n "$video_quality" ]; then
+        final_name="$final_name [$video_quality]"
     fi
-    
-    # Add languages
-    if [ -n "$languages" ]; then
-        formatted_name="${formatted_name} {${languages}}"
+
+    # Add language tag if not English
+    if [ "$language" != "english" ] && [ -n "$language" ] && [ "$language" != "unknown" ]; then
+         final_name="$final_name {$language}"
     fi
-    
+
     # Add subtitle info if available
-    if [ "$has_subs" = "true" ] && [ -n "$sub_langs" ]; then
-        formatted_name="${formatted_name} (SUB: ${sub_langs})"
+    if [ "$has_subtitles" = true ]; then
+        final_name="$final_name (SUB: ${subtitle_langs:-eng})"
     fi
-    
-    # Add size if available
-    if [ -n "$size" ]; then
-        formatted_name="${formatted_name} [${size}]"
-    fi
-    
-    # Replace problematic characters
-    formatted_name=$(echo "$formatted_name" | tr ':' '-' | tr '/' '-' | tr '\' '-' | tr '*' '-' | tr '?' '-' | tr '"' "'" | tr '<' '(' | tr '>' ')' | tr '|' '-')
-    
-    # Make sure we add the extension
-    formatted_name="${formatted_name}.${extension}"
-    
-    echo "$formatted_name"
+
+    # Add file size if available
+    # if [ -n "$file_size" ]; then
+    #     final_name="$final_name [$file_size]"
+    # fi
+
+    # Add extension back
+    final_name="${final_name}.${extension}"
+
+    # Final cleanup for SMB compatibility
+    final_name=$(echo "$final_name" | tr ':*/?"<>|\\' '--------' | sed 's/ -- / - /g' | sed 's/  */ /g' | sed 's/^ *//;s/ *$//')
+
+    # Optional: Truncate if too long (consider SMB limits)
+    # final_name=${final_name:0:200} # Example limit
+
+    echo "$final_name"
 }
 
-# Function to process media files
+# Main processing function for a media file
 process_media_file() {
     local file="$1"
     local filename=$(basename "$file")
-    local file_extension="${file##*.}"
-    local file_extension_lower=$(echo "$file_extension" | tr '[:upper:]' '[:lower:]')
-    
+
     log "Processing file: $filename"
-    
-    # Skip if file doesn't exist
-    if [ ! -f "$file" ]; then
-        log "ERROR: Source file does not exist: $file"
-        return 1
-    fi
-    
-    # Check if file meets minimum size requirement
-    local filesize=$(du -k "$file" 2>/dev/null | cut -f1)
-    if [ ${filesize:-0} -lt 10000 ]; then
-        log "File too small, may be incomplete: $filename ($filesize KB)"
-        return 1
-    fi
-    
-    # Clean the filename for better organization
-    local cleaned_name=$(clean_filename "$filename")
-    log "Cleaned filename: $cleaned_name"
-    
-    # Detect language from filename
-    local language=$(identify_language "$cleaned_name")
-    log "Identified language: $language"
-    
-    # Detect if this is a TV show or movie
-    local media_type=$(identify_media_type "$cleaned_name")
-    log "Identified as $media_type: $cleaned_name"
-    
-    # Analyze file for language tracks if it's a video file
-    local has_preferred_language=false
-    local has_english=false
-    local detected_languages=""
-    
-    if [[ "$file_extension_lower" =~ ^(mkv|mp4|avi|m4v|mov)$ ]]; then
-        extract_language_tracks "$file"
+
+    # Clean base filename
+    local base_filename=$(clean_filename "$filename")
+    log "Cleaned base filename: $base_filename"
+
+    # Identify language (capture only stdout from function)
+    local language=$(identify_language "$file")
+    # Log the result AFTER capture (internal function logs steps to stderr)
+    log "Language identified by function: $language"
+
+    # Identify media type
+    local media_type=$(identify_media_type "$base_filename")
+    log "Identified as $media_type: $base_filename"
+
+    # --- Language Extraction Handling --- #
+    local file_to_process="$file" # Default to original file
+    local extraction_performed=false
+    local temp_dir_for_extraction=""
+
+    # Check conditions for attempting extraction
+    if [[ "$base_filename" =~ \.(mkv|mp4)$ ]] && [ "$EXTRACT_AUDIO_TRACKS" = true ] && [ "$language" = "malayalam" ]; then
+        # Define the target temporary directory and file path
+        local base_temp_dir="/tmp/media-processor"
+        mkdir -p "$base_temp_dir"
+        temp_dir_for_extraction="$base_temp_dir/$(basename "$file" | tr -dc 'a-zA-Z0-9' | tr '[:upper:]' '[:lower:]')_extract_$(date +%s)"
+        mkdir -p "$temp_dir_for_extraction"
+        local potential_extracted_file="$temp_dir_for_extraction/$(basename "${base_filename%.*}")-mal.mkv"
+
+        log "Attempting language extraction script: $LANGUAGE_EXTRACTION_SCRIPT $file $PREFERRED_LANGUAGE $potential_extracted_file"
+
+        # **CRITICAL: Execute the script, capture stdout (the path) and exit status**
+        local extracted_path
+        extracted_path=$("$LANGUAGE_EXTRACTION_SCRIPT" "$file" "$PREFERRED_LANGUAGE" "$potential_extracted_file")
         local extraction_status=$?
-        
-        if [ $extraction_status -ne 0 ]; then
-            log "WARNING: Failed to extract language information from $filename (continuing with filename-based detection)"
-        fi
-    fi
-    
-    # Determine target directory based on language, media type and file extension
-    local target_dir=""
-    
-    # Video files (movies and TV shows)
-    if [[ "$file_extension_lower" =~ ^(mkv|mp4|avi|m4v|mov)$ ]]; then
-        if [ "$language" = "malayalam" ]; then
-            if [ "$media_type" = "tvshow" ]; then
-                target_dir="$MALAYALAM_TV_PATH"
-                
-                # For TV shows, get series name and season
-                local series_name=$(extract_series_name "$cleaned_name")
-                local season_dir=$(get_season_folder "$cleaned_name")
-                target_dir="$target_dir/$series_name/$season_dir"
+        log "Extraction script exit status: $extraction_status"
+        log "Extraction script stdout (path): $extracted_path"
+
+        # Evaluate the result based ONLY on status and file existence
+        if [ $extraction_status -eq 0 ]; then
+            # Script finished successfully (might be skipped or extracted)
+            # Check if the script produced the expected output file path AND it exists
+            if [ -n "$extracted_path" ] && [ "$extracted_path" == "$potential_extracted_file" ] && [ -s "$extracted_path" ]; then
+                log "SUCCESS: Extraction script successful and produced valid file: $extracted_path"
+                file_to_process="$extracted_path"
+                extraction_performed=true
             else
-                # It's a movie
-                target_dir="$MALAYALAM_MOVIE_PATH"
-                
-                # For movies, create a folder with movie name
-                local movie_folder=$(get_folder_name "$cleaned_name")
-                target_dir="$target_dir/$movie_folder"
+                log "INFO: Extraction script finished (status 0) but did not produce expected output ('$extracted_path' vs '$potential_extracted_file') or file empty/not found. Using original file."
+                file_to_process="$file"
+                extraction_performed=false
+                # Clean up empty temp dir
+                if [ -d "$temp_dir_for_extraction" ]; then rmdir "$temp_dir_for_extraction" 2>/dev/null; fi
             fi
         else
-            # Default to English
-            if [ "$media_type" = "tvshow" ]; then
-                target_dir="$ENGLISH_TV_PATH"
-                
-                # For TV shows, get series name and season
-                local series_name=$(extract_series_name "$cleaned_name")
-                local season_dir=$(get_season_folder "$cleaned_name")
-                target_dir="$target_dir/$series_name/$season_dir"
-            else
-                # It's a movie
-                target_dir="$ENGLISH_MOVIE_PATH"
-                
-                # For movies, create a folder with movie name
-                local movie_folder=$(get_folder_name "$cleaned_name")
-                target_dir="$target_dir/$movie_folder"
+            # Script failed (status != 0).
+            log "ERROR: Extraction script failed (status $extraction_status). Using original file."
+            file_to_process="$file"
+            extraction_performed=false
+            # Clean up failed temp dir
+            if [ -d "$temp_dir_for_extraction" ]; then
+                log "Cleaning up failed temporary extraction directory: $temp_dir_for_extraction"
+                rm -rf "$temp_dir_for_extraction"
             fi
-        fi
-    # Audio files
-    elif [[ "$file_extension_lower" =~ ^(mp3|flac|aac|m4a)$ ]]; then
-        target_dir="$DEFAULT_MEDIA_PATH/audio"
-    # Image files
-    elif [[ "$file_extension_lower" =~ ^(jpg|jpeg|png|gif|webp)$ ]]; then
-        target_dir="$DEFAULT_MEDIA_PATH/images"
-    # Other files
-    else
-        log "Unknown file extension: $file_extension_lower, using default directory"
-        target_dir="$DEFAULT_MEDIA_PATH/other"
-    fi
-    
-    # Extract Malayalam language track if needed and EXTRACT_AUDIO_TRACKS is enabled
-    local processed_file="$file"
-    local temp_file=""
-    local use_extracted=false
-    
-    if [[ "$EXTRACT_AUDIO_TRACKS" = true && 
-          "$language" = "malayalam" && 
-          "$file_extension_lower" = "mkv" && 
-          -n "$detected_languages" ]]; then
-        
-        log "Attempting to extract Malayalam audio track from: $filename"
-        
-        # Create a temporary directory for processing
-        local temp_dir=$(mktemp -d)
-        temp_file="$temp_dir/$(basename "$file")"
-        
-        if command -v mkvmerge >/dev/null 2>&1; then
-            # Get track info
-            local track_info=$(mkvmerge -J "$file" 2>/dev/null)
-            local has_mal_audio=false
-            local audio_tracks=""
-            local subtitle_tracks=""
-            
-            # Find Malayalam audio tracks and English subtitles
-            if command -v jq >/dev/null 2>&1; then
-                # Extract track IDs for Malayalam audio
-                audio_tracks=$(echo "$track_info" | jq -r '.tracks[] | select(.type=="audio" and .properties.language=="mal") | .id')
-                
-                if [ -z "$audio_tracks" ]; then
-                    log "No Malayalam audio tracks found, will use original file"
-                else
-                    has_mal_audio=true
-                    log "Found Malayalam audio tracks: $audio_tracks"
-                    
-                    # Extract track IDs for English subtitles
-                    subtitle_tracks=$(echo "$track_info" | jq -r '.tracks[] | select(.type=="subtitles" and .properties.language=="eng") | .id')
-                    if [ -n "$subtitle_tracks" ]; then
-                        log "Found English subtitle tracks: $subtitle_tracks"
-                    else
-                        log "No English subtitle tracks found"
-                    fi
-                    
-                    # Build mkvmerge command for extraction
-                    local mkvmerge_cmd="mkvmerge -o \"$temp_file\" "
-                    
-                    # Add video tracks (all of them)
-                    mkvmerge_cmd+="--video-tracks all "
-                    
-                    # Add only Malayalam audio tracks
-                    mkvmerge_cmd+="--audio-tracks "
-                    mkvmerge_cmd+="$audio_tracks "
-                    
-                    # Add English subtitle tracks if found
-                    if [ -n "$subtitle_tracks" ]; then
-                        mkvmerge_cmd+="--subtitle-tracks $subtitle_tracks "
-                    else
-                        mkvmerge_cmd+="--no-subtitles "
-                    fi
-                    
-                    # Add the input file
-                    mkvmerge_cmd+="\"$file\""
-                    
-                    log "Running MKVMerge command: $mkvmerge_cmd"
-                    eval $mkvmerge_cmd
-                    
-                    if [ $? -eq 0 ] && [ -f "$temp_file" ]; then
-                        log "Successfully extracted Malayalam audio to: $temp_file"
-                        processed_file="$temp_file"
-                        use_extracted=true
-                    else
-                        log "ERROR: Failed to extract Malayalam audio, using original file"
-                        processed_file="$file"
-                    fi
-                fi
-            else
-                log "jq not found, cannot extract tracks from MKV - using original file"
-            fi
-        else
-            log "mkvmerge not found, cannot extract tracks from MKV - using original file"
-        fi
-    fi
-    
-    # Format final filename with the improved naming
-    local final_filename=""
-    
-    if [ "$media_type" = "tvshow" ]; then
-        # For TV shows, get the formatted episode name
-        local series_name=$(extract_series_name "$cleaned_name")
-        local season_episode=$(extract_season_episode "$cleaned_name")
-        local base_tv_name="${series_name} ${season_episode}"
-        
-        final_filename=$(format_media_filename "$processed_file" "$base_tv_name" "$detected_languages")
-    else
-        # For movies or other content
-        final_filename=$(format_media_filename "$processed_file" "$cleaned_name" "$detected_languages")
-    fi
-    
-    log "Formatted filename: $final_filename"
-    
-    # Copy the file to SMB share with the new filename
-    if [ ! -z "$target_dir" ]; then
-        # Create a temporary copy with the formatted name for copying
-        local temp_dir=$(mktemp -d)
-        local formatted_file="$temp_dir/$final_filename"
-        
-        # Skip copy if we're already using a temp file from extraction
-        if [ "$use_extracted" = true ]; then
-            # Rename the extracted file to our formatted name
-            mv "$processed_file" "$formatted_file"
-        else
-            # Copy the original to our formatted name
-            cp "$processed_file" "$formatted_file"
-        fi
-        
-        # Copy the formatted file
-        copy_to_smb "$formatted_file" "$target_dir"
-        local copy_status=$?
-        
-        # Clean up temporary files
-        rm -f "$formatted_file"
-        if [ "$use_extracted" = true ]; then
-            rm -rf "$(dirname "$processed_file")"
-        fi
-        rmdir "$temp_dir"
-        
-        if [ $copy_status -eq 0 ]; then
-            log "Successfully processed: $filename -> $final_filename"
-            
-            # If configured to clean up originals after successful transfer
-            if [ "$CLEAN_ORIGINAL_FILES" = true ]; then
-                log "Removing original file: $file"
-                rm -f "$file"
-                # Remove empty directories
-                if [ -d "$(dirname "$file")" ] && [ -z "$(ls -A "$(dirname "$file")")" ]; then
-                    log "Removing empty directory: $(dirname "$file")"
-                    rmdir "$(dirname "$file")"
-                fi
-            fi
-            
-            return 0
-        else
-            log "ERROR: Failed to copy $filename to SMB share"
-            log "KEEPING original file for retry: $file"
-            return 1
         fi
     else
-        log "ERROR: No target directory determined for $filename"
+      log "INFO: Skipping language extraction (Filetype/Config/Language)."
+      file_to_process="$file"
+      extraction_performed=false
+    fi
+    # --- End Language Extraction Handling --- #
+
+    log "File determined for processing: $file_to_process"
+
+    # Final check: ensure the file we intend to process exists
+    if [ ! -f "$file_to_process" ]; then
+        log "ERROR: Critical - File determined for processing does not exist: '$file_to_process'. Original file was '$file'. Skipping transfer."
+        # Cleanup extraction temp dir if it exists
+        if [ -n "$temp_dir_for_extraction" ] && [ -d "$temp_dir_for_extraction" ]; then
+             log "Cleaning up temporary directory due to non-existent final file: $temp_dir_for_extraction"
+             rm -rf "$temp_dir_for_extraction"
+        fi
+        post_failed_transfer "$file" "Error: Processing resulted in non-existent file" "$language" "$media_type"
         return 1
     fi
+
+    # --- Metadata and Renaming --- #
+    # Use original filename for context
+    local cleaned_title=$(clean_language_tags "$base_filename")
+    log "Cleaned base name (tags removed): $cleaned_title"
+
+    # Determine target directory
+    local target_dir=$(determine_target_directory "$file" "$language" "$media_type" "$cleaned_title")
+    log "Raw target directory determined: $target_dir"
+
+    # Validate and reconstruct target_dir if necessary
+    if [[ -z "$target_dir" || "$target_dir" == *"DEBUG:"* || "$target_dir" == *"AM "* || "$target_dir" == *"PM "* ]]; then
+        log "WARNING: Invalid target directory derived ('$target_dir'), reconstructing..."
+        if [ "$language" = "malayalam" ] && [ "$media_type" = "tvshow" ]; then
+            local series_name=$(extract_series_name "$cleaned_title")
+            local season_dir=$(get_season_folder "$cleaned_title")
+            target_dir="$MALAYALAM_TV_PATH/$series_name/$season_dir"
+        elif [ "$language" = "malayalam" ]; then
+            local movie_folder=$(get_folder_name "$cleaned_title")
+            target_dir="$MALAYALAM_MOVIE_PATH/$movie_folder"
+        elif [ "$media_type" = "tvshow" ]; then
+            local series_name=$(extract_series_name "$cleaned_title")
+            local season_dir=$(get_season_folder "$cleaned_title")
+            target_dir="$ENGLISH_TV_PATH/$series_name/$season_dir"
+        else # English Movie
+            local movie_folder=$(get_folder_name "$cleaned_title")
+            target_dir="$ENGLISH_MOVIE_PATH/$movie_folder"
+        fi
+        log "Reconstructed target directory: $target_dir"
+    fi
+
+    # Gather metadata from the file we are actually processing
+    local video_quality=$(extract_resolution "$file_to_process") # Use specific func
+    local codec=$(extract_codec "$file_to_process")             # Use specific func
+    local quality_tag="${video_quality}${codec:+ $codec}"      # Combine quality/codec
+    local has_subtitles=$(check_subtitles "$file_to_process")
+    local subtitle_langs=$(get_subtitle_languages "$file_to_process") # Get specific langs
+    local file_size=$(get_formatted_size "$file_to_process")
+    local extension="${file_to_process##*.}"
+
+    # Format the final filename
+    local final_filename=$(format_final_filename "$cleaned_title" "$media_type" "$language" "$has_subtitles" "$subtitle_langs" "$quality_tag" "$file_size" "$extension")
+    log "Formatted final filename: $final_filename"
+    # --- End Metadata and Renaming --- #
+
+    # --- File Transfer --- #
+    if transfer_media_file "$file" "$file_to_process" "$target_dir" "$final_filename"; then
+        log "Successfully transferred $filename -> $target_dir/$final_filename"
+
+        # Clean up temp extraction dir if extraction was performed
+        if [ "$extraction_performed" = true ] && [ -n "$temp_dir_for_extraction" ] && [ -d "$temp_dir_for_extraction" ]; then
+            log "Cleaning up successful temporary extraction directory: $temp_dir_for_extraction"
+            rm -rf "$temp_dir_for_extraction"
+        fi
+
+        post_to_dashboard "$file" "$target_dir/$final_filename" "$language" "$media_type"
+
+        # --- Original File Cleanup --- #
+        if [ "$DRY_RUN" != true ] && [ "$CLEAN_ORIGINAL_FILES" = true ]; then
+            log "CLEANUP: Removing original file: $file"
+            rm -f "$file"
+
+            # If original file was in a subdirectory (and not the source dir itself), check if empty and remove
+            local file_dir=$(dirname "$file")
+            if [ "$file_dir" != "." ] && [ "$file_dir" != "/" ] && [ "$file_dir" != "$SOURCE_DIR" ] && [ -d "$file_dir" ] && [ -z "$(ls -A "$file_dir" 2>/dev/null)" ]; then
+                log "CLEANUP: Removing empty original directory: $file_dir"
+                rmdir "$file_dir"
+            fi
+        else
+            log "KEEPING original file (DRY_RUN=$DRY_RUN, CLEAN_ORIGINAL_FILES=$CLEAN_ORIGINAL_FILES): $file"
+        fi
+        # --- End Original File Cleanup --- #
+
+        return 0 # Success for this file
+    else
+        log "ERROR: Failed to transfer $final_filename (from $file_to_process) to SMB share."
+
+        # Clean up temp extraction dir if extraction was performed and transfer failed
+        if [ "$extraction_performed" = true ] && [ -n "$temp_dir_for_extraction" ] && [ -d "$temp_dir_for_extraction" ]; then
+             log "Cleaning up temporary extraction directory after failed transfer: $temp_dir_for_extraction"
+             rm -rf "$temp_dir_for_extraction"
+        fi
+
+        post_failed_transfer "$file" "$target_dir/$final_filename" "$language" "$media_type"
+
+        log "KEEPING source file for retry: $file_to_process"
+        return 1 # Failure for this file
+    fi
+    # --- End File Transfer --- #
 }
 
 # Function to process directories with media content
 process_media_directory() {
     local dir="$1"
     local dirname=$(basename "$dir")
-    
-    # Skip if not a directory
-    if [ ! -d "$dir" ]; then
+
+    # Skip if not a directory or is the main source directory itself
+    if [ ! -d "$dir" ] || [ "$dir" == "$SOURCE_DIR" ]; then
         return
     fi
-    
+
     log "Processing directory: $dirname"
-    
-    # Find media files inside the directory
-    find "$dir" -type f \( -name "*.mkv" -o -name "*.mp4" -o -name "*.avi" \) | while read mediafile; do
-        process_media_file "$mediafile"
-    done
-    
-    # Check if directory is now empty and can be removed
-    if [ -z "$(ls -A "$dir")" ]; then
-        if [ "$DRY_RUN" = true ]; then
-            log "DRY RUN: Would remove empty directory: $dir"
+
+    local all_files_processed=true
+
+    # Find media files inside the directory (process them directly)
+    find "$dir" -maxdepth 1 -type f \( -name "*.mkv" -o -name "*.mp4" -o -name "*.avi" \) | while IFS= read -r mediafile; do
+        if is_download_complete "$mediafile"; then
+             # Make sure LANGUAGE_EXTRACTION_SCRIPT is executable
+             chmod +x "$LANGUAGE_EXTRACTION_SCRIPT"
+             process_media_file "$mediafile"
+             if [ $? -ne 0 ]; then
+                 all_files_processed=false
+             fi
         else
-        log "Removing empty directory: $dir"
-        rmdir "$dir"
+            log "Skipping incomplete file: $(basename "$mediafile")"
+            all_files_processed=false # Mark dir as not fully processed
         fi
+    done
+
+    # Check if directory can be removed (only if CLEAN_ORIGINAL_FILES is true and all contained files were processed)
+    if [ "$CLEAN_ORIGINAL_FILES" = true ] && [ "$all_files_processed" = true ] && [ -z "$(ls -A "$dir" 2>/dev/null)" ]; then
+        if [ "$DRY_RUN" = true ]; then
+            log "DRY RUN: Would remove empty processed directory: $dir"
+        else
+            log "Removing empty processed directory: $dir"
+            rmdir "$dir"
+        fi
+    elif [ -z "$(ls -A "$dir" 2>/dev/null)" ]; then
+         log "Directory is empty but not removing (CLEAN_ORIGINAL_FILES=$CLEAN_ORIGINAL_FILES or all_files_processed=$all_files_processed): $dir"
     fi
 }
 
 # Function to cleanup leftover RAR files
 cleanup_rar_files() {
     if [ "$CLEANUP_RAR_FILES" != true ]; then
-        log "RAR cleanup disabled, skipping"
+        # log "RAR cleanup disabled, skipping"
         return
     fi
-    
+
     log "Starting cleanup of leftover RAR files"
-    
-    # Find directories containing RAR files
-    find "$SOURCE_DIR" -maxdepth 2 -type f -name "*.rar" | sort | while read rar_file; do
+
+    # Find RAR files (check depth 1 and 2)
+    find "$SOURCE_DIR" -maxdepth 2 -type f \( -name "*.rar" -o -name "*.r[0-9][0-9]" -o -name "*.part[0-9]*.rar" \) | sort | while IFS= read -r rar_file; do
         local dir=$(dirname "$rar_file")
-        local dirname=$(basename "$dir")
-        local filename=$(basename "$rar_file")
-        
-        log "Found RAR file: $rar_file"
-        
-        # Check if there are any media files in the parent directory 
-        # that might still need to be extracted
-        local has_unprocessed_media=false
-        
-        if find "$dir" -type f \( -name "*.mkv" -o -name "*.mp4" -o -name "*.avi" \) | grep -q .; then
-            # Has media files, check if they are all processed
-            local all_processed=true
-            find "$dir" -type f \( -name "*.mkv" -o -name "*.mp4" -o -name "*.avi" \) | while read mediafile; do
-                if ! is_download_complete "$mediafile"; then
-                    all_processed=false
-                    break
-                fi
-            done
-            
-            if [ "$all_processed" = false ]; then
-                has_unprocessed_media=true
-            fi
-        fi
-        
-        # Only cleanup if there are no unprocessed media files
-        if [ "$has_unprocessed_media" = false ]; then
-            if [ "$DRY_RUN" = true ]; then
-                log "DRY RUN: Would remove RAR file: $rar_file"
-            else
-                log "Removing RAR file: $rar_file"
-                rm "$rar_file"
-            fi
+
+        # Check if the directory still contains *any* non-hidden files
+        # If it contains other files (like extracted media not yet processed, or other RAR parts), don't delete
+        if [ -z "$(find "$dir" -maxdepth 1 -type f -not -name '.*' -not -name "$(basename "$rar_file")" -print -quit)" ]; then
+             # Directory is empty except possibly for this RAR file (or other hidden files)
+             if [ "$DRY_RUN" = true ]; then
+                 log "DRY RUN: Would remove RAR file in likely empty directory: $rar_file"
+             else
+                 log "Removing RAR file in likely empty directory: $rar_file"
+                 rm -f "$rar_file"
+             fi
         else
-            log "Skipping RAR file: $rar_file (unprocessed media files found)"
+            log "Skipping RAR file (directory not empty): $rar_file"
         fi
     done
-    
+
     log "RAR file cleanup completed"
 }
 
 # Function to cleanup empty directories
 cleanup_empty_dirs() {
     if [ "$CLEANUP_EMPTY_DIRS" != true ]; then
-        log "Empty directory cleanup disabled, skipping"
+        # log "Empty directory cleanup disabled, skipping"
         return
     fi
-    
+
     log "Starting cleanup of empty directories"
-    
-    # Find all directories in the source directory
-    find "$SOURCE_DIR" -type d -not -path "$SOURCE_DIR" -not -path "$SOURCE_DIR/Media extractor" | sort -r | while read dir; do
-        # Check if directory is empty
+
+    # Find all directories, excluding the source, sort reverse depth
+    find "$SOURCE_DIR" -mindepth 1 -type d -not -path "*/\.*" | sort -r | while IFS= read -r dir; do
+        # Check if directory is empty (ignoring hidden files)
         if [ -z "$(ls -A "$dir" 2>/dev/null)" ]; then
             if [ "$DRY_RUN" = true ]; then
                 log "DRY RUN: Would remove empty directory: $dir"
@@ -732,327 +726,137 @@ cleanup_empty_dirs() {
                 log "Removing empty directory: $dir"
                 rmdir "$dir"
             fi
+        # Optional: Check if directory ONLY contains hidden files?
+        # elif [ -z "$(ls -A "$dir" | grep -v '^[.]')" ]; then
+             # log "Directory only contains hidden files: $dir"
+             # Consider removing if desired
         fi
     done
-    
+
     log "Empty directory cleanup completed"
 }
 
-# Function to verify and create root media directory
-verify_root_media_dir() {
-    log "Verifying root media directory exists"
-    
-    # Check if the media directory exists at the root level
-    run_smb_command "$SMB_SHARE" "ls media" > /dev/null
-    if [ $? -ne 0 ]; then
-        log "Root media directory doesn't exist. Attempting to create it."
-        run_smb_command "$SMB_SHARE" "mkdir media" > /dev/null
-        if [ $? -ne 0 ]; then
-            log "ERROR: Failed to create root media directory. Check permissions."
-            return 1
-        fi
-        log "Successfully created root media directory"
-    else
-        log "Root media directory exists"
-    fi
-    
-    return 0
-}
-
-# Function to copy files to SMB share
-copy_to_smb() {
-    local source_file="$1"
-    local target_dir="$2"
-    local filename=$(basename "$source_file")
-    
-    # Define the target path properly
-    local smb_target_path="//$SMB_SERVER/$SMB_SHARE/$target_dir"
-    
-    log "Copying $filename to SMB share: $smb_target_path"
-    
-    # Skip if in dry run mode
-    if [ "$DRY_RUN" = true ]; then
-        log "DRY-RUN: Would copy $filename to $smb_target_path"
-        return 0
-    fi
-    
-    # Create directory structure (with improved error handling now that permissions are fixed)
-    create_smb_directory "$target_dir"
-    if [ $? -ne 0 ]; then
-        log "ERROR: Failed to create directory structure: $target_dir"
-        return 1
-    fi
-    
-    # Check if target file already exists
-    run_smb_command "$SMB_SHARE" "ls \"$target_dir\"" > /dev/null 2>&1
-    if [ $? -ne 0 ]; then
-        log "ERROR: Target directory cannot be accessed: $target_dir"
-        return 1
-    fi
-    
-    # Check if target file already exists - using quoted path for spaces
-    local check_cmd="ls \"$target_dir/$filename\""
-    log "Checking if file exists: $check_cmd"
-    run_smb_command "$SMB_SHARE" "$check_cmd" > /dev/null 2>&1
-    local file_exists=$?
-    
-    if [ $file_exists -eq 0 ] && [ "$OVERWRITE_EXISTING" != "true" ]; then
-        log "Target file already exists and OVERWRITE_EXISTING is disabled. Skipping: $filename"
-        return 0
-    fi
-    
-    # Copy file to SMB share
-    log "Copying $filename to $target_dir/"
-    
-    # Create a temporary script file with the put command
-    local temp_put_file=$(mktemp)
-    # Properly escape quotes in the paths
-    echo "put \"$source_file\" \"$target_dir/$filename\"" > "$temp_put_file"
-    
-    log "Running SMB command: $(cat $temp_put_file)"
-    run_smb_command "$SMB_SHARE" "$(cat $temp_put_file)"
-    local copy_status=$?
-    rm "$temp_put_file"
-    
-    if [ $copy_status -ne 0 ]; then
-        log "ERROR: Failed to copy file: $filename (Status: $copy_status)"
-        return 1
-    fi
-    
-    # Verify file exists on target (with permissions now fixed, this should work properly)
-    local verify_cmd="ls \"$target_dir/$filename\""
-    log "Verifying file exists: $verify_cmd"
-    run_smb_command "$SMB_SHARE" "$verify_cmd" > /dev/null
-    local verify_status=$?
-    
-    if [ $verify_status -ne 0 ]; then
-        log "ERROR: Verification failed - target file not found after copy: $target_dir/$filename"
-        return 1
-    fi
-    
-    log "Successfully copied and verified: $filename to $target_dir/"
-    return 0
-}
-
-# Function to process a directory
-process_directory() {
-    local dir="$1"
-    
-    # Skip if SMB is not connected and this would require file transfer
-    if [ "$SMB_CONNECTED" = false ]; then
-        log "Skipping directory processing for $dir as SMB is not connected"
-        return
-    fi
-    
-    # Check if the directory contains any completed media files
-    find "$dir" -type f \( -name "*.mkv" -o -name "*.mp4" -o -name "*.avi" \) -not -path "*/\.*" | while read mediafile; do
-        if is_download_complete "$mediafile"; then
-            process_media_file "$mediafile"
-        fi
-    done
-    
-    # Check if directory is now empty and can be removed
-    if [ -z "$(ls -A "$dir" 2>/dev/null)" ]; then
-        if [ "$DRY_RUN" = true ]; then
-            log "DRY RUN: Would remove empty directory: $dir"
-        else
-            log "Removing empty directory: $dir"
-            rmdir "$dir"
-        fi
-    fi
-}
-
-# Get media file resolution, codec and size information
-get_media_info() {
-    local file="$1"
-    local resolution=""
-    local codec=""
-    local filesize=""
-    
-    # Get file size in GB (rounded to 1 decimal place)
-    local size_bytes=$(stat -c %s "$file" 2>/dev/null)
-    if [ -n "$size_bytes" ]; then
-        local size_gb=$(echo "scale=1; $size_bytes / 1073741824" | bc)
-        filesize="${size_gb}GB"
-    fi
-    
-    # Try to get resolution and codec with mediainfo
-    if command -v mediainfo >/dev/null 2>&1; then
-        # Get resolution
-        local width=$(mediainfo --Inform="Video;%Width%" "$file" 2>/dev/null)
-        local height=$(mediainfo --Inform="Video;%Height%" "$file" 2>/dev/null)
-        
-        if [ -n "$width" ] && [ -n "$height" ]; then
-            if [ "$height" -ge 2160 ]; then
-                resolution="4K"
-            elif [ "$height" -ge 1080 ]; then
-                resolution="1080p"
-            elif [ "$height" -ge 720 ]; then
-                resolution="720p"
-            elif [ "$height" -ge 480 ]; then
-                resolution="480p"
-            else
-                resolution="${height}p"
-            fi
-        fi
-        
-        # Get codec
-        local videoCodec=$(mediainfo --Inform="Video;%Format%" "$file" 2>/dev/null)
-        if [ -n "$videoCodec" ]; then
-            if [[ "$videoCodec" == *"AVC"* ]] || [[ "$videoCodec" == *"H264"* ]]; then
-                codec="H.264"
-            elif [[ "$videoCodec" == *"HEVC"* ]] || [[ "$videoCodec" == *"H265"* ]]; then
-                codec="H.265"
-            else
-                codec="$videoCodec"
-            fi
-        fi
-    elif command -v ffprobe >/dev/null 2>&1; then
-        # Fallback to ffprobe
-        local probe_info=$(ffprobe -v quiet -print_format json -show_streams -select_streams v:0 "$file" 2>/dev/null)
-        
-        # Parse with basic tools if jq isn't available
-        if [[ "$probe_info" == *"width"* ]]; then
-            local width=$(echo "$probe_info" | grep -o '"width":[0-9]*' | grep -o '[0-9]*')
-            local height=$(echo "$probe_info" | grep -o '"height":[0-9]*' | grep -o '[0-9]*')
-            
-            if [ -n "$width" ] && [ -n "$height" ]; then
-                if [ "$height" -ge 2160 ]; then
-                    resolution="4K"
-                elif [ "$height" -ge 1080 ]; then
-                    resolution="1080p"
-                elif [ "$height" -ge 720 ]; then
-                    resolution="720p"
-                elif [ "$height" -ge 480 ]; then
-                    resolution="480p"
-                else
-                    resolution="${height}p"
-                fi
-            fi
-        fi
-        
-        if [[ "$probe_info" == *"codec_name"* ]]; then
-            local codec_name=$(echo "$probe_info" | grep -o '"codec_name":"[^"]*' | grep -o '[^"]*$')
-            
-            if [ "$codec_name" == "h264" ]; then
-                codec="H.264"
-            elif [ "$codec_name" == "hevc" ]; then
-                codec="H.265"
-            else
-                codec="$codec_name"
-            fi
-        fi
-    fi
-    
-    # Create info string with the gathered information
-    local info=""
-    if [ -n "$resolution" ]; then
-        info="$info $resolution"
-    fi
-    
-    if [ -n "$codec" ]; then
-        info="$info $codec"
-    fi
-    
-    if [ -n "$filesize" ]; then
-        info="$info $filesize"
-    fi
-    
-    echo "$info"
-}
-
-# Main processing function
+# Main processing loop
 main() {
     log "Starting media monitoring for $SOURCE_DIR"
-    
+
     if [ "$DRY_RUN" = true ]; then
         log "Operating mode: DRY RUN - no files will be copied or deleted"
     else
         log "Operating mode: NORMAL"
     fi
-    
+
+    # Ensure extraction script is executable early on
+    if [ -f "$LANGUAGE_EXTRACTION_SCRIPT" ]; then
+        chmod +x "$LANGUAGE_EXTRACTION_SCRIPT"
+        log "Ensured $LANGUAGE_EXTRACTION_SCRIPT is executable."
+    else
+        log "ERROR: Language extraction script not found at $LANGUAGE_EXTRACTION_SCRIPT"
+        exit 1
+    fi
+
     # Check required tools first
     check_required_tools
     if [ $? -ne 0 ]; then
         log "ERROR: Required tools are missing. Exiting."
         exit 1
     fi
-    
-    # Test SMB connection and share accessibility
-    SMB_CONNECTED=false
-    check_smb_connection
-    if [ $? -ne 0 ]; then
-        log "WARNING: SMB connection test failed. Will continue running and retry later."
-        SMB_CONNECTED=false
-    else
-        SMB_CONNECTED=true
-        
-        # Verify root media directory exists if SMB is connected
-        verify_root_media_dir
-        if [ $? -ne 0 ]; then
-            log "WARNING: Root media directory verification failed. Will continue running and retry later."
-        else
-            log "Verifying media directories exist"
-            verify_smb_path "$MALAYALAM_MOVIE_PATH"
-            verify_smb_path "$MALAYALAM_TV_PATH"
-            verify_smb_path "$ENGLISH_MOVIE_PATH"
-            verify_smb_path "$ENGLISH_TV_PATH"
-        fi
-    fi
-    
-    # Find directories to monitor (with -type d to get only directories)
-    DIRS_TO_MONITOR=$(find "$SOURCE_DIR" -type d | grep -v "node_modules\|\.git")
-    
-    # Main processing loop
+
+    # Main loop
     while true; do
-        # Try to reconnect SMB if previously failed
-        if [ "$SMB_CONNECTED" = false ]; then
-            log "Retrying SMB connection..."
-            check_smb_connection
-            if [ $? -eq 0 ]; then
-                log "SMB connection successfully established"
-                SMB_CONNECTED=true
-                
-                # Verify directories after successful connection
-                verify_root_media_dir
-                verify_smb_path "$MALAYALAM_MOVIE_PATH"
-                verify_smb_path "$MALAYALAM_TV_PATH"
-                verify_smb_path "$ENGLISH_MOVIE_PATH"
-                verify_smb_path "$ENGLISH_TV_PATH"
+        log "Scanning $SOURCE_DIR for new media files..."
+
+        # Test SMB connection at the start of each scan cycle
+        SMB_CONNECTED=false
+        check_smb_connection
+        if [ $? -eq 0 ]; then
+            SMB_CONNECTED=true
+            # Verify directories only if connected
+            verify_root_media_dir && \
+            verify_smb_path "$MALAYALAM_MOVIE_PATH" && \
+            verify_smb_path "$MALAYALAM_TV_PATH" && \
+            verify_smb_path "$ENGLISH_MOVIE_PATH" && \
+            verify_smb_path "$ENGLISH_TV_PATH"
+            if [ $? -ne 0 ]; then
+                 log "WARNING: Failed to verify/create SMB directory structure. Transfers might fail."
             fi
+        else
+            log "WARNING: SMB connection failed. Will attempt processing locally if possible, but transfers will fail."
         fi
-        
-        # Continue with normal processing regardless of SMB status
-        for dir in $DIRS_TO_MONITOR; do
-            # Skip web-app directories
-            if [[ "$dir" == *"web-app"* ]]; then
-                log "Found directory: $dir"
-                continue
-            fi
-            
-            if [ -d "$dir" ]; then
-                process_directory "$dir"
-            fi
+
+        # Process individual files in the root source directory first
+        find "$SOURCE_DIR" -maxdepth 1 -type f \( -name "*.mkv" -o -name "*.mp4" -o -name "*.avi" \) | while IFS= read -r mediafile; do
+             if is_download_complete "$mediafile"; then
+                chmod +x "$LANGUAGE_EXTRACTION_SCRIPT"
+                process_media_file "$mediafile"
+             else
+                log "Skipping incomplete file in root: $(basename "$mediafile")"
+             fi
         done
-        
+
+        # Process directories within the source directory
+        find "$SOURCE_DIR" -mindepth 1 -maxdepth 1 -type d -not -path "*/\.*" | while IFS= read -r dir; do
+            process_media_directory "$dir"
+        done
+
+        log "Scanning complete."
+
         # Cleanup tasks
-        if [ "$CLEANUP_RAR_FILES" = true ]; then
-            log "Starting cleanup of leftover RAR files"
-            cleanup_rar_files
-            log "RAR file cleanup completed"
-        fi
-        
-        if [ "$CLEANUP_EMPTY_DIRS" = true ]; then
-            log "Starting cleanup of empty directories"
-            cleanup_empty_dirs
-            log "Empty directory cleanup completed"
-        fi
-        
+        log "Starting cleanup operations"
+        cleanup_rar_files
+        cleanup_empty_dirs
+        log "Cleanup operations completed"
+
         log "Sleeping for 60 seconds before next scan..."
         sleep 60
     done
 }
 
-# Start the main process
-main
+# Start the main process if this script is executed directly
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    # Ensure log file exists and is writable
+    touch "$LOG_FILE" || { echo "FATAL: Cannot write to log file $LOG_FILE"; exit 1; }
+    main
+fi
 
+# Function to post processing information to the dashboard API
+post_to_dashboard() {
+    local original_file="$1"
+    local target_path="$2"
+    local language="$3"
+    local media_type="$4"
+    local filename=$(basename "$target_path")
+
+    # Get file size in bytes
+    local file_size=0
+    # Use the original file path to get size before potential deletion
+    if [ -f "$original_file" ]; then
+        file_size=$(stat -c %s "$original_file")
+    elif [ -f "$file_to_process" ]; then # Fallback if original is gone but extracted exists
+         file_size=$(stat -c %s "$file_to_process")
+    fi
+
+    # Call the centralized dashboard API function with success status
+    dashboard_post_data "$filename" "$file_size" "$media_type" "$language" "success" "$target_path"
+
+    # Update media counts after successful processing
+    update_media_counts
+
+    return 0
+}
+
+# Function to post failed transfer information to the dashboard API
+post_failed_transfer() {
+    local original_file="$1"
+    local target_path_or_error="$2"
+    local language="$3"
+    local media_type="$4"
+
+    if [ -f "$original_file" ]; then
+        local filename=$(basename "$original_file")
+        local file_size=$(stat -c %s "$original_file")
+        dashboard_post_data "$filename" "$file_size" "$media_type" "$language" "failed" "$target_path_or_error"
+    else
+        log "WARNING: Cannot post failed transfer for non-existent file: $original_file"
+    fi
+}

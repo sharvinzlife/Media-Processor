@@ -6,6 +6,160 @@ const { exec } = require('child_process');
 
 const app = express();
 const port = process.env.PORT || 3001;
+
+app.use(cors());
+app.use(express.json());
+
+// Persistent stats file
+const statsPath = path.join(__dirname, 'stats.json');
+
+// Helper to load stats (init if missing)
+function loadStats() {
+  if (!fs.existsSync(statsPath)) {
+    const initialStats = {
+      english_movies: 0,
+      malayalam_movies: 0,
+      english_tv_shows: 0,
+      malayalam_tv_shows: 0,
+      files: []
+    };
+    fs.writeFileSync(statsPath, JSON.stringify(initialStats, null, 2));
+    return initialStats;
+  }
+  try {
+    return JSON.parse(fs.readFileSync(statsPath, 'utf8'));
+  } catch (e) {
+    return { english_movies: 0, malayalam_movies: 0, english_tv_shows: 0, malayalam_tv_shows: 0, files: [] };
+  }
+}
+
+function saveStats(stats) {
+  fs.writeFileSync(statsPath, JSON.stringify(stats, null, 2));
+}
+
+// API: Get stats and file history
+app.get('/api/stats', (req, res) => {
+  const stats = loadStats();
+  res.json({ success: true, stats });
+});
+
+// API: Add processed file (expects { name, type, language, processedAt })
+app.post('/api/stats/add', (req, res) => {
+  const { name, type, language, processedAt } = req.body;
+  if (!name || !type || !language || !processedAt) {
+    return res.status(400).json({ success: false, error: 'Missing required fields' });
+  }
+  const stats = loadStats();
+  // Increment counters
+  if (type === 'movie') {
+    if (language === 'english') stats.english_movies++;
+    if (language === 'malayalam') stats.malayalam_movies++;
+  }
+  if (type === 'tvshow') {
+    if (language === 'english') stats.english_tv_shows++;
+    if (language === 'malayalam') stats.malayalam_tv_shows++;
+  }
+  // Add to file history (keep max 500 for perf)
+  stats.files.unshift({ name, type, language, processedAt });
+  if (stats.files.length > 500) stats.files.length = 500;
+  saveStats(stats);
+  res.json({ success: true });
+});
+
+// Alternative API endpoints for backward compatibility with dashboard-api.sh
+// Add processed media endpoint
+app.post('/api/media/processed', (req, res) => {
+  const { name, type, language, processedAt, path, size, status } = req.body;
+  
+  if (!name || !type || !language) {
+    return res.status(400).json({ success: false, error: 'Missing required fields' });
+  }
+  
+  const timestamp = processedAt || new Date().toISOString();
+  const stats = loadStats();
+  
+  // Increment counters
+  if (type === 'movie') {
+    if (language === 'english') stats.english_movies++;
+    if (language === 'malayalam') stats.malayalam_movies++;
+  }
+  if (type === 'tvshow') {
+    if (language === 'english') stats.english_tv_shows++;
+    if (language === 'malayalam') stats.malayalam_tv_shows++;
+  }
+  
+  // Add to file history with more complete metadata
+  stats.files.unshift({ 
+    name, 
+    type, 
+    language, 
+    processedAt: timestamp,
+    path: path || '',
+    size: size || '',
+    status: status || 'success' 
+  });
+  
+  if (stats.files.length > 500) stats.files.length = 500;
+  saveStats(stats);
+  
+  res.json({ success: true, message: 'Media processed successfully' });
+});
+
+// Add failed media endpoint
+app.post('/api/media/failed', (req, res) => {
+  const { name, type, language, timestamp, path, error } = req.body;
+  
+  if (!name) {
+    return res.status(400).json({ success: false, error: 'Missing required field: name' });
+  }
+  
+  const stats = loadStats();
+  
+  // Add to file history with failed status
+  stats.files.unshift({ 
+    name, 
+    type: type || 'unknown', 
+    language: language || 'unknown', 
+    processedAt: timestamp || new Date().toISOString(),
+    path: path || '',
+    status: 'failed',
+    error: error || 'Unknown error' 
+  });
+  
+  if (stats.files.length > 500) stats.files.length = 500;
+  saveStats(stats);
+  
+  res.json({ success: true, message: 'Failed media record added' });
+});
+
+// Add update media counts endpoint
+app.post('/api/media/update-counts', (req, res) => {
+  // This endpoint just returns the current stats without doing anything
+  // (The actual counting happens in the /api/media/processed endpoint)
+  res.json({ 
+    success: true, 
+    stats: {
+      english_movies: loadStats().english_movies,
+      malayalam_movies: loadStats().malayalam_movies,
+      english_tv_shows: loadStats().english_tv_shows,
+      malayalam_tv_shows: loadStats().malayalam_tv_shows
+    }
+  });
+});
+
+// Add stats update-counts endpoint (alias for media/update-counts)
+app.post('/api/stats/update-counts', (req, res) => {
+  res.json({ 
+    success: true, 
+    stats: {
+      english_movies: loadStats().english_movies,
+      malayalam_movies: loadStats().malayalam_movies,
+      english_tv_shows: loadStats().english_tv_shows,
+      malayalam_tv_shows: loadStats().malayalam_tv_shows
+    }
+  });
+});
+
 const scriptPath = path.join(__dirname, '../../bin/media-processor.sh');
 const configPath = path.join(__dirname, '../../lib/config.sh');
 const logFile = '/home/sharvinzlife/media-processor.log';
@@ -85,6 +239,24 @@ app.get('/api/status', (req, res) => {
         }
       });
     }
+  });
+});
+
+// Robust restart endpoint
+app.post('/api/restart', (req, res) => {
+  // Only allow from localhost
+  if (req.ip !== '::1' && req.ip !== '127.0.0.1' && req.ip !== '::ffff:127.0.0.1') {
+    return res.status(403).json({ success: false, error: 'Forbidden' });
+  }
+  const restartScript = path.join(__dirname, '../../restart-services.sh');
+  if (!fs.existsSync(restartScript)) {
+    return res.status(500).json({ success: false, error: 'Restart script not found' });
+  }
+  exec(`bash "${restartScript}"`, { timeout: 60000 }, (error, stdout, stderr) => {
+    if (error) {
+      return res.status(500).json({ success: false, error: error.message, stdout, stderr });
+    }
+    res.json({ success: true, stdout, stderr });
   });
 });
 

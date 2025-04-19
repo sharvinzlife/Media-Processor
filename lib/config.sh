@@ -41,3 +41,7 @@ MIN_RAR_AGE_HOURS=0             # Set to 0 for immediate cleanup after processin
 
 # Global variables
 SMB_CONNECTED=false  # Will be set to true if SMB connection is successful
+
+# Dashboard API settings
+DASHBOARD_API_URL="http://localhost:3001"  # Point this to your dashboard server address (port 3001)
+DASHBOARD_API_ENABLED=true                 # Set to false to disable dashboard updates

@@ -6,6 +6,7 @@
   <title>Media Processor</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
   <style>
     :root {
@@ -47,8 +48,10 @@
     }
     
     body {
-      font-family: 'Segoe UI', sans-serif;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background-color: var(--bg-color);
+      margin: 0;
+      padding: 0;
       color: var(--text-color);
       min-height: 100vh;
       display: flex;
@@ -61,11 +64,177 @@
       padding: 2rem 0;
       margin-bottom: 2rem;
       box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+    
+    [data-theme="dark"] .header {
+      background: linear-gradient(135deg, rgba(48, 63, 159, 0.9), rgba(63, 81, 181, 0.9));
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    
+    /* Animated header title styles */
+    .header-title {
+      font-family: 'Poppins', sans-serif;
+      font-weight: 700;
+      font-size: 2.5rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+    
+    .header-title-text {
+      background: linear-gradient(45deg, #fff, #f0f8ff, #fff);
+      background-size: 200% 200%;
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: gradient-animation 6s ease infinite;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    [data-theme="dark"] .header-title-text {
+      background: linear-gradient(45deg, #ffffff, #c7d6ff, #ffffff);
+      background-size: 200% 200%;
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    }
+    
+    .emoji-group {
+      margin: 0 15px;
+      display: flex;
+      gap: 5px;
+    }
+    
+    .emoji-bounce {
+      display: inline-block;
+      animation: bounce 2s infinite;
+      font-size: 1.8rem;
+      color: initial; /* Reset color to default emoji colors */
+      text-shadow: none; /* Remove text shadow that might affect color */
+      -webkit-text-fill-color: initial; /* Ensure emojis display with their natural colors */
+    }
+    
+    @keyframes bounce {
+      0%, 20%, 50%, 80%, 100% {transform: translateY(0);}
+      40% {transform: translateY(-20px);}
+      60% {transform: translateY(-10px);}
+    }
+    
+    /* Subtitle typing animation */
+    .typing-text {
+      font-family: 'Poppins', sans-serif;
+      border-right: 3px solid white;
+      width: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      animation: typing 4s steps(40) 1s forwards, blink 1s infinite;
+      margin: 0 auto;
+      display: inline-block;
+      max-width: 80%; /* Reduced to prevent cursor from going too far */
+    }
+    
+    @keyframes typing {
+      from { width: 0 }
+      to { width: 100% }
+    }
+    
+    @keyframes blink {
+      0%, 100% { border-color: transparent }
+      50% { border-color: white }
+    }
+    
+    /* Dark mode specific text styling */
+    [data-theme="dark"] .header-title {
+      background: linear-gradient(45deg, #ffffff, #c7d6ff, #ffffff);
+      background-size: 200% 200%;
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    }
+    
+    /* Container for subtitle to prevent overflow */
+    .subtitle-container {
+      max-width: 90%;
+      margin: 0 auto;
+      overflow: hidden;
+      padding: 0 10px; /* Add padding to keep text from touching edges */
+    }
+    
+    /* Make emojis more visible in dark mode */
+    [data-theme="dark"] .emoji-bounce {
+      filter: brightness(1.2); /* Make emojis brighter in dark mode */
+      text-shadow: 0 0 10px rgba(255,255,255,0.3);
+    }
+    
+    /* Scrollable file history table */
+    .file-history-container {
+      height: 330px; /* Fixed height to show approximately 6 rows */
+      overflow-y: auto;
+      border-radius: 10px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--primary) transparent;
+      scroll-behavior: smooth;
+      padding-right: 2px;
+    }
+    
+    /* Customize scrollbar */
+    .file-history-container::-webkit-scrollbar {
+      width: 8px;
+    }
+    
+    .file-history-container::-webkit-scrollbar-track {
+      background: rgba(0,0,0,0.05);
+      border-radius: 10px;
+      margin: 5px 0;
+    }
+    
+    .file-history-container::-webkit-scrollbar-thumb {
+      background: var(--primary);
+      border-radius: 10px;
+      border: 2px solid transparent;
+      background-clip: padding-box;
+    }
+    
+    .file-history-container::-webkit-scrollbar-thumb:hover {
+      background: var(--secondary);
+      border: 2px solid transparent;
+      background-clip: padding-box;
+    }
+    
+    [data-theme="dark"] .file-history-container::-webkit-scrollbar-track {
+      background: rgba(255,255,255,0.05);
+    }
+    
+    [data-theme="dark"] .file-history-container::-webkit-scrollbar-thumb {
+      background: rgba(92, 107, 192, 0.8);
+    }
+    
+    [data-theme="dark"] .file-history-container::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 64, 129, 0.8);
+    }
+    
+    /* Make table header sticky in the scrollable container */
+    .file-history-container thead th {
+      position: sticky;
+      top: 0;
+      background: var(--card-bg);
+      z-index: 1;
+    }
+    
+    [data-theme="dark"] .file-history-container thead th {
+      background: var(--table-header-bg, #23263a);
     }
     .card {
-      border-radius: 12px;
-      box-shadow: 0 6px 10px rgba(0,0,0,0.1);
-      margin-bottom: 24px;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      margin-bottom: 20px;
+      transition: all 0.3s ease;
       background-color: var(--card-bg);
       color: var(--text-color);
     }
@@ -113,25 +282,173 @@
       overflow-y: auto;
     }
     .test-result {
-      padding: 8px;
-      margin-bottom: 8px;
-      border-radius: 4px;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 5px;
     }
     .test-success {
-      background-color: rgba(76, 175, 80, 0.1);
-      border-left: 4px solid #4caf50;
+      background-color: rgba(0, 200, 83, 0.1);
+      border-left: 4px solid #00c853;
     }
     .test-failure {
-      background-color: rgba(244, 67, 54, 0.1);
-      border-left: 4px solid #f44336;
+      background-color: rgba(255, 82, 82, 0.1);
+      border-left: 4px solid #ff5252;
+    }
+    /* --- Custom dark mode table and footer enhancements --- */
+    [data-theme="dark"] .table {
+      background-color: var(--card-bg) !important;
+      color: var(--text-color) !important;
+    }
+    [data-theme="dark"] thead th {
+      background: var(--table-header-bg, #23263a) !important;
+      color: var(--table-header-text, #fafafa) !important;
+      border-bottom: 2px solid var(--table-border, #44495e) !important;
+    }
+    [data-theme="dark"] tbody tr {
+      background-color: var(--table-row-bg, #2d3142) !important;
+      border-bottom: 1px solid var(--table-border, #44495e) !important;
+    }
+    [data-theme="dark"] .footer {
+      background-color: var(--footer-bg, #23263a) !important;
+      color: var(--footer-text, #cfcfcf) !important;
+    }
+    .dark-mode {
+      background-color: #181a1b;
+      color: #e8e6e3;
+    }
+    .navbar {
+      background-color: #3f51b5 !important;
+    }
+    .dark-mode .navbar {
+      background-color: #2c387e !important;
+    }
+    .dark-mode .card {
+      background-color: #252a2e;
+      color: #e8e6e3;
+      border-color: #2d3133;
+    }
+    .dark-mode .card-header {
+      background-color: #2d3133;
+      border-color: #2d3133;
+    }
+    .dark-mode .table {
+      color: #e8e6e3;
+    }
+    .dark-mode .table-striped tbody tr:nth-of-type(odd) {
+      background-color: rgba(255, 255, 255, 0.1) !important; /* Slightly brighter background */
+    }
+    .dark-mode .table-striped tbody tr:nth-of-type(even) {
+      background-color: rgba(255, 255, 255, 0.02) !important; /* Very subtle background */
+    }
+    .dark-mode .table tbody tr td {
+      color: rgba(255, 255, 255, 0.9) !important; /* Brighter text */
+    }
+    .dark-mode .text-center {
+      color: #e8e6e3;
+    }
+    /* Fix for "No files processed yet" message in dark mode */
+    .dark-mode .table tbody .text-center {
+      color: #ffffff !important; /* Higher contrast white */
+      font-weight: 500; /* Semi-bold for better visibility */
+    }
+    .btn-primary {
+      background-color: #3f51b5;
+      border-color: #3f51b5;
+    }
+    .btn-primary:hover {
+      background-color: #303f9f;
+      border-color: #303f9f;
+    }
+    .icon-container {
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #e0e0e0;
+      color: #3f51b5;
+      border-radius: 50%;
+      margin-right: 15px;
+    }
+    .dark-mode .icon-container {
+      background-color: #3a3f44;
+      color: #b3e5fc;
+    }
+    .dark-mode .test-success {
+      background-color: rgba(0, 200, 83, 0.2);
+    }
+    .dark-mode .test-failure {
+      background-color: rgba(255, 82, 82, 0.2);
+    }
+    #service-status {
+      position: relative;
+      padding-left: 20px;
+    }
+    .status-indicator {
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+    .status-active {
+      background-color: #00c853;
+      box-shadow: 0 0 10px #00c853;
+      animation: pulse 1.5s infinite;
+    }
+    .status-inactive {
+      background-color: #ff5252;
+    }
+    @keyframes pulse {
+      0% {
+        opacity: 0.5;
+        transform: scale(0.8);
+      }
+      50% {
+        opacity: 1;
+        transform: scale(1.2);
+      }
+      100% {
+        opacity: 0.5;
+        transform: scale(0.8);
+      }
+    }
+    .logs pre {
+      background-color: #f5f5f5;
+      padding: 10px;
+      border-radius: 5px;
+      font-size: 0.85rem;
+      height: 400px;
+      overflow-y: auto;
+    }
+    .dark-mode .logs pre {
+      background-color: #1e2226;
+      color: #e8e6e3;
+      border: 1px solid #2d3133;
     }
   </style>
 </head>
 <body>
   <header class="header text-center">
     <div class="container">
-      <h1><i class="fas fa-film me-2"></i>Media Processor</h1>
-      <p>Automatically organizes your media files into structured libraries</p>
+      <h1 class="header-title">
+        <span class="emoji-group">
+          <span class="emoji-bounce">🎬</span>
+          <span class="emoji-bounce">🎞️</span>
+          <span class="emoji-bounce">📽️</span>
+        </span>
+        <span class="header-title-text">Media Processor</span>
+        <span class="emoji-group">
+          <span class="emoji-bounce">🎥</span>
+          <span class="emoji-bounce">📺</span>
+          <span class="emoji-bounce">🍿</span>
+        </span>
+      </h1>
+      <div class="subtitle-container">
+        <p><span class="typing-text">Automatically organizes your media files into structured libraries</span></p>
+      </div>
     </div>
   </header>
 
@@ -163,6 +480,28 @@
           <div class="fs-1 text-primary mb-2"><i class="fas fa-tv"></i></div>
           <div class="fs-1 fw-bold text-primary" id="malayalam-tv-count">0</div>
           <div>Malayalam TV Shows</div>
+        </div>
+      </div>
+    </div>
+    <!-- File History Dashboard -->
+    <div class="card mb-4">
+      <div class="card-header"><b>Processed File History</b></div>
+      <div class="card-body p-0">
+        <div class="file-history-container">
+          <table class="table table-striped mb-0" id="file-history-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>File Name</th>
+                <th>Type</th>
+                <th>Language</th>
+                <th>Date & Time</th>
+              </tr>
+            </thead>
+            <tbody id="file-history-body">
+              <tr><td colspan="5" class="text-center">Loading...</td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -316,16 +655,28 @@
       document.body.appendChild(themeToggle);
       
       const toggleBtn = document.getElementById('theme-toggle');
+      
+      // Initialize theme based on local storage or default to light
+      const savedTheme = localStorage.getItem('theme') || 'light';
+      setTheme(savedTheme);
+      
       toggleBtn.addEventListener('click', function() {
         const currentTheme = document.documentElement.getAttribute('data-theme');
-        if (currentTheme === 'light') {
-          document.documentElement.setAttribute('data-theme', 'dark');
+        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+        setTheme(newTheme);
+        localStorage.setItem('theme', newTheme);
+      });
+      
+      function setTheme(theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+        if (theme === 'dark') {
+          document.body.classList.add('dark-mode');
           toggleBtn.innerHTML = '<i class="fas fa-sun"></i>';
         } else {
-          document.documentElement.setAttribute('data-theme', 'light');
+          document.body.classList.remove('dark-mode');
           toggleBtn.innerHTML = '<i class="fas fa-moon"></i>';
         }
-      });
+      }
 
       // API functions
       const API = {
@@ -690,9 +1041,36 @@
         });
       });
 
+      // Fetch and display persistent stats and file history
+      function loadStatsAndHistory() {
+        fetch('/api/stats')
+          .then(res => res.json())
+          .then(data => {
+            if (data.success) {
+              const stats = data.stats;
+              document.getElementById('english-movies-count').textContent = stats.english_movies;
+              document.getElementById('malayalam-movies-count').textContent = stats.malayalam_movies;
+              document.getElementById('english-tv-count').textContent = stats.english_tv_shows;
+              document.getElementById('malayalam-tv-count').textContent = stats.malayalam_tv_shows;
+              // File history
+              const tbody = document.getElementById('file-history-body');
+              tbody.innerHTML = '';
+              if (stats.files.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center">No files processed yet.</td></tr>';
+              } else {
+                stats.files.slice(0, 50).forEach((f, i) => {
+                  const row = document.createElement('tr');
+                  row.innerHTML = `<td>${i+1}</td><td>${f.name}</td><td>${f.type}</td><td>${f.language}</td><td>${new Date(f.processedAt).toLocaleString()}</td>`;
+                  tbody.appendChild(row);
+                });
+              }
+            }
+          });
+      }
       // Initialize
       loadSettings();
       loadLogs();
+      loadStatsAndHistory();
     });
   </script>
 </body>

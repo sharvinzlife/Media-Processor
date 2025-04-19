@@ -1,0 +1,56 @@
+{
+  "english_movies": 0,
+  "malayalam_movies": 0,
+  "english_tv_shows": 0,
+  "malayalam_tv_shows": 8,
+  "files": [
+    {
+      "name": "Sweet Kaaram Coffee S01E08 [1080p H.264] [575M].mkv",
+      "type": "tvshow",
+      "language": "malayalam",
+      "processedAt": "2025-04-19T21:28:25Z"
+    },
+    {
+      "name": "Sweet Kaaram Coffee S01E05 [1080p H.264] [915M].mkv",
+      "type": "tvshow",
+      "language": "malayalam",
+      "processedAt": "2025-04-19T21:28:13Z"
+    },
+    {
+      "name": "Sweet Kaaram Coffee S01E06 [1080p H.264] [605M].mkv",
+      "type": "tvshow",
+      "language": "malayalam",
+      "processedAt": "2025-04-19T21:27:58Z"
+    },
+    {
+      "name": "Sweet Kaaram Coffee S01E04 [1080p H.264] [773M].mkv",
+      "type": "tvshow",
+      "language": "malayalam",
+      "processedAt": "2025-04-19T21:27:45Z"
+    },
+    {
+      "name": "Sweet Kaaram Coffee S01E07 [1080p H.264] [512M].mkv",
+      "type": "tvshow",
+      "language": "malayalam",
+      "processedAt": "2025-04-19T21:27:31Z"
+    },
+    {
+      "name": "Sweet Kaaram Coffee S01E03 [1080p H.264] [651M].mkv",
+      "type": "tvshow",
+      "language": "malayalam",
+      "processedAt": "2025-04-19T21:27:20Z"
+    },
+    {
+      "name": "Sweet Kaaram Coffee S01E01 [1080p H.264] [383M].mkv",
+      "type": "tvshow",
+      "language": "malayalam",
+      "processedAt": "2025-04-19T21:26:06Z"
+    },
+    {
+      "name": "Sweet Kaaram Coffee S01E02 [1080p H.264] [556M].mkv",
+      "type": "tvshow",
+      "language": "malayalam",
+      "processedAt": "2025-04-19T21:25:56Z"
+    }
+  ]
+}

@@ -61,10 +61,9 @@ media-processor/
    sudo ./setup.sh
    ```
 
-4. Start the services:
+4. Start the service:
    ```bash
    sudo systemctl start media-processor.service
-   sudo systemctl start media-processor-web.service
    ```
 
 ## 🖥️ Web Interface
@@ -76,6 +75,7 @@ The Media Processor includes a modern web interface for easy control and monitor
 * **Settings** - Configure SMB connections and media paths
 * **Logs** - View real-time processing logs
 * **Diagnostics** - Test connections and troubleshoot issues
+* **Persistent History** - File processing history is saved and persists across system restarts
 
 Access the web interface at: `http://your-server:3001`
 
