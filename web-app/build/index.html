@@ -6,6 +6,7 @@
   <title>Media Processor</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
   <style>
     :root {
       --primary: #3f51b5;
@@ -13,7 +14,7 @@
       --success: #4caf50;
       --dark: #2c3e50;
       --light: #ecf0f1;
-      --bg-color: #FFD99E;
+      --bg-color: #FFE5B4;
       --card-bg: #ffffff;
       --text-color: #2c3e50;
       --header-gradient-start: #3f51b5;
@@ -23,6 +24,7 @@
       --toggle-bg: #f0f0f0;
       --toggle-active: #3f51b5;
       --toggle-icon: #fafafa;
+      --footer-bg: rgba(255, 255, 255, 0.7);
     }
 
     [data-theme="dark"] {
@@ -41,1291 +43,657 @@
       --toggle-bg: #333333;
       --toggle-active: #5c6bc0;
       --toggle-icon: #fafafa;
+      --footer-bg: rgba(45, 49, 66, 0.7);
     }
     
     body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-family: 'Segoe UI', sans-serif;
       background-color: var(--bg-color);
       color: var(--text-color);
-      transition: all 0.3s ease;
-      padding-top: 0; /* Ensure no extra padding when header becomes sticky */
-    }
-    
-    .theme-switch-wrapper {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      z-index: 1010;
+      min-height: 100vh;
       display: flex;
-      align-items: center;
-      background: rgba(255, 255, 255, 0.2);
-      backdrop-filter: blur(5px);
-      padding: 6px;
-      border-radius: 50px;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      flex-direction: column;
     }
-    
-    .theme-switch {
-      display: inline-block;
-      height: 34px;
-      position: relative;
-      width: 60px;
-    }
-
-    .theme-switch input {
-      display: none;
-    }
-
-    .slider {
-      background-color: var(--toggle-bg);
-      bottom: 0;
-      cursor: pointer;
-      left: 0;
-      position: absolute;
-      right: 0;
-      top: 0;
-      transition: .4s;
-      border-radius: 34px;
-      box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
-    }
-
-    .slider:before {
-      background-color: var(--toggle-icon);
-      bottom: 4px;
-      content: "";
-      height: 26px;
-      left: 4px;
-      position: absolute;
-      transition: .4s;
-      width: 26px;
-      border-radius: 50%;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    }
-
-    input:checked + .slider {
-      background-color: var(--toggle-active);
-    }
-
-    input:checked + .slider:before {
-      transform: translateX(26px);
-    }
-    
-    .slider-icons {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 0 8px;
-      box-sizing: border-box;
-      pointer-events: none;
-    }
-    
-    .sun-icon, .moon-icon {
-      color: var(--toggle-icon);
-      font-size: 14px;
-      filter: drop-shadow(0 1px 1px rgba(0,0,0,0.3));
-    }
-    
     .header {
       background: linear-gradient(135deg, rgba(63, 81, 181, 0.85), rgba(121, 134, 203, 0.85));
       backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
       color: white;
       padding: 2rem 0;
       margin-bottom: 2rem;
       box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-      position: sticky;
-      top: 0;
-      left: 0;
-      right: 0;
-      z-index: 1000;
-      overflow: hidden;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
-      transition: all 0.3s ease;
     }
-
-    .header.scrolled {
-      padding: 1rem 0;
-    }
-    
-    .header h1 {
-      font-weight: 700;
-      font-size: 2.5rem;
-      text-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    
-    .header p {
-      font-size: 1.2rem;
-      opacity: 0.9;
-    }
-    
     .card {
       border-radius: 12px;
-      box-shadow: 0 6px 10px var(--card-shadow);
-      transition: all 0.3s ease;
-      border: none;
+      box-shadow: 0 6px 10px rgba(0,0,0,0.1);
       margin-bottom: 24px;
       background-color: var(--card-bg);
       color: var(--text-color);
     }
-    
-    .card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 12px 20px var(--card-shadow);
+    .footer {
+      margin-top: auto;
+      padding: 1.5rem 0;
+      background-color: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(10px);
     }
-    
-    .card-header {
-      background-color: var(--card-bg);
-      border-bottom: 1px solid var(--card-border);
-      font-weight: 600;
-      border-radius: 12px 12px 0 0 !important;
-    }
-    
-    .status-badge {
-      font-size: 1rem;
-      padding: 0.5rem 1rem;
-      border-radius: 50px;
-    }
-    
-    .running {
-      background-color: var(--success);
-      color: white;
-    }
-    
-    .stopped {
-      background-color: var(--secondary);
-      color: white;
-    }
-    
-    .btn-primary {
-      background-color: var(--primary);
-      border-color: var(--primary);
-    }
-    
-    .logs {
-      height: 400px;
-      overflow-y: auto;
-      background: var(--card-bg);
-      padding: 10px;
-      border-radius: 4px;
-      border: 1px solid var(--card-border);
-      font-family: monospace;
-      white-space: pre-wrap;
-      font-size: 0.85rem;
-      color: var(--text-color);
-    }
-    
-    .activity-item {
-      padding: 0.5rem;
-      border-bottom: 1px solid var(--card-border);
-    }
-    
-    .activity-item:last-child {
-      border-bottom: none;
-    }
-    
-    .activity-icon {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      margin-right: 10px;
-    }
-    
-    .icon-blue { background-color: rgba(63, 81, 181, 0.1); color: var(--primary); }
-    .icon-green { background-color: rgba(76, 175, 80, 0.1); color: var(--success); }
-    .icon-red { background-color: rgba(244, 67, 54, 0.1); color: #f44336; }
-    
-    .section-title {
-      margin-bottom: 1.5rem;
-      font-weight: 600;
-      color: var(--primary);
-      padding-bottom: 0.5rem;
-      border-bottom: 2px solid rgba(63, 81, 181, 0.2);
-    }
-    
-    .animation-container {
-      width: 200px;
-      height: 200px;
-      margin: 0 auto;
-    }
-    
-    /* Form styles */
-    .form-label {
-      font-weight: 500;
-    }
-    
-    .input-group {
-      margin-bottom: 1rem;
-    }
-    
-    .input-group-text {
-      background-color: var(--primary);
-      color: white;
-      border: none;
-    }
-    
-    .form-control {
-      background-color: var(--card-bg);
-      color: var(--text-color);
-      border-color: var(--card-border);
-    }
-    
-    .form-control:focus {
-      background-color: var(--card-bg);
-      color: var(--text-color);
-    }
-    
-    .btn-save {
-      min-width: 120px;
-    }
-    
-    .path-info {
-      font-size: 0.8rem;
-      color: #6c757d;
-      margin-top: 0.25rem;
-    }
-    
-    /* Animation */
-    @keyframes pulse {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.05); }
-      100% { transform: scale(1); }
-    }
-    
-    .pulse {
-      animation: pulse 2s infinite;
-    }
-    
-    /* Processing Animation */
-    .processing-dot {
+    .heart-beat {
       display: inline-block;
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      margin: 0 5px;
-      background-color: var(--primary);
-      animation: processingDot 1.4s infinite ease-in-out both;
+      color: #ff4081;
+      animation: heartBeat 1.5s infinite;
     }
-    
-    .processing-dot:nth-child(1) { animation-delay: -0.32s; }
-    .processing-dot:nth-child(2) { animation-delay: -0.16s; }
-    
-    @keyframes processingDot {
-      0%, 80%, 100% { transform: scale(0); }
-      40% { transform: scale(1); }
+    @keyframes heartBeat {
+      0% { transform: scale(1); }
+      14% { transform: scale(1.3); }
+      28% { transform: scale(1); }
+      42% { transform: scale(1.3); }
+      70% { transform: scale(1); }
     }
-    
-    .tab-pane {
-      padding: 1.5rem;
+    .emoji-rotate {
+      display: inline-block;
+      animation: rotate 3s infinite linear;
     }
-    
-    .hidden {
-      display: none;
+    @keyframes rotate {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
     }
-    
-    #toast-container {
+    .toast-container {
       position: fixed;
       top: 20px;
       right: 20px;
       z-index: 9999;
     }
-    
-    .custom-toast {
-      min-width: 300px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    .toast {
+      min-width: 250px;
+    }
+    .diagnostic-result {
+      background-color: rgba(0,0,0,0.05);
       border-radius: 8px;
-      overflow: hidden;
-      margin-bottom: 10px;
-      animation: slideIn 0.3s forwards;
+      padding: 15px;
+      margin-top: 15px;
+      max-height: 300px;
+      overflow-y: auto;
     }
-    
-    @keyframes slideIn {
-      from { transform: translateX(100%); opacity: 0; }
-      to { transform: translateX(0); opacity: 1; }
+    .test-result {
+      padding: 8px;
+      margin-bottom: 8px;
+      border-radius: 4px;
     }
-    
-    .nav-tabs .nav-link {
-      color: var(--text-color);
+    .test-success {
+      background-color: rgba(76, 175, 80, 0.1);
+      border-left: 4px solid #4caf50;
     }
-    
-    .nav-tabs .nav-link.active {
-      background-color: transparent;
-      color: var(--primary);
-      border-color: var(--card-border) var(--card-border) var(--card-bg);
-    }
-    
-    .form-check-input {
-      background-color: var(--card-bg);
-      border-color: var(--card-border);
-    }
-    
-    .form-check-input:checked {
-      background-color: var(--primary);
-      border-color: var(--primary);
-    }
-
-    /* Add or update these styles to fix dark mode visibility issues in the statistics page */
-    .stat-card {
-      text-align: center;
-      padding: 2rem 1rem;
-      background-color: var(--card-bg);
-      border-radius: 10px;
-      box-shadow: 0 4px 8px var(--card-shadow);
-      margin-bottom: 1.5rem;
-      transition: all 0.3s ease;
-    }
-
-    .stat-card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 8px 16px var(--card-shadow);
-    }
-
-    .stat-number {
-      font-size: 3rem;
-      font-weight: 700;
-      color: var(--primary);
-      margin-bottom: 0.5rem;
-    }
-
-    .stat-label {
-      font-size: 1.1rem;
-      color: var(--text-color);
-      opacity: 0.9;
-    }
-
-    .stat-icon {
-      font-size: 2.5rem;
-      color: var(--primary);
-      margin-bottom: 1rem;
-    }
-
-    .stats-footer {
-      text-align: center;
-      margin-top: 3rem;
-      padding-top: 1rem;
-      border-top: 1px solid var(--card-border);
-      color: var(--text-color);
-      opacity: 0.7;
-      font-size: 0.9rem;
-    }
-
-    /* Additional styles for statistics page */
-    .category-title {
-      font-size: 1.4rem;
-      color: var(--primary);
-      margin-top: 1rem;
-      padding-top: 1rem;
-      border-top: 1px solid var(--card-border);
-    }
-    
-    .cat-stat-card {
-      background-color: var(--card-bg);
-      border-radius: 8px;
-      padding: 1rem;
-      text-align: center;
-      box-shadow: 0 3px 10px var(--card-shadow);
-      transition: all 0.3s ease;
-      height: 100%;
-    }
-    
-    .cat-stat-card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 5px 15px var(--card-shadow);
-    }
-    
-    .cat-icon {
-      font-size: 1.8rem;
-      margin-bottom: 0.5rem;
-      position: relative;
-      display: inline-block;
-    }
-    
-    .flag-icon {
-      font-size: 1.2rem;
-      position: absolute;
-      top: -5px;
-      right: -10px;
-    }
-    
-    .cat-stat-number {
-      font-size: 2rem;
-      font-weight: 700;
-      color: var(--primary);
-    }
-    
-    .cat-stat-label {
-      font-size: 0.9rem;
-      color: var(--text-color);
-    }
-    
-    .creator-footer {
-      text-align: center;
-      margin-top: 2rem;
-      margin-bottom: 1rem;
-      padding: 1rem;
-      background-color: var(--card-bg);
-      border-radius: 50px;
-      box-shadow: 0 2px 10px var(--card-shadow);
-      transition: all 0.3s ease;
-    }
-    
-    .creator-footer:hover {
-      transform: scale(1.03);
-      box-shadow: 0 5px 15px var(--card-shadow);
-    }
-    
-    .creator-link {
-      color: var(--text-color);
-      font-weight: 500;
-      text-decoration: none;
-      display: inline-block;
-      padding: 0.5rem 1rem;
-    }
-    
-    .heart-beat {
-      display: inline-block;
-      animation: heartBeat 1.5s infinite;
-      margin: 0 0.2rem;
-    }
-    
-    .creator-emoji {
-      display: inline-block;
-      animation: rotate 2s infinite;
-      margin-left: 0.5rem;
-    }
-    
-    .pulse-subtle {
-      animation: pulseSlow 3s infinite;
-    }
-    
-    @keyframes heartBeat {
-      0% { transform: scale(1); }
-      25% { transform: scale(1.3); }
-      50% { transform: scale(1); }
-      75% { transform: scale(1.3); }
-      100% { transform: scale(1); }
-    }
-    
-    @keyframes rotate {
-      0% { transform: rotate(0deg); }
-      25% { transform: rotate(15deg); }
-      50% { transform: rotate(0deg); }
-      75% { transform: rotate(-15deg); }
-      100% { transform: rotate(0deg); }
-    }
-    
-    @keyframes pulseSlow {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.03); }
-      100% { transform: scale(1); }
+    .test-failure {
+      background-color: rgba(244, 67, 54, 0.1);
+      border-left: 4px solid #f44336;
     }
   </style>
 </head>
 <body>
-  <div class="theme-switch-wrapper">
-    <label class="theme-switch" for="checkbox">
-      <input type="checkbox" id="checkbox" />
-      <div class="slider">
-        <div class="slider-icons">
-          <i class="fas fa-sun sun-icon"></i>
-          <i class="fas fa-moon moon-icon"></i>
-        </div>
-      </div>
-    </label>
-  </div>
-
-  <div class="header text-center">
+  <header class="header text-center">
     <div class="container">
-      <h1 class="mb-3">🎬 Media Processor</h1>
-      <p class="lead mb-0">Automatically organizes your media files into structured libraries</p>
+      <h1><i class="fas fa-film me-2"></i>Media Processor</h1>
+      <p>Automatically organizes your media files into structured libraries</p>
     </div>
-  </div>
+  </header>
 
   <div class="container mb-5">
-    <div class="row">
-      <!-- Status and Controls Card -->
-      <div class="col-md-5 mb-4">
-        <div class="card h-100">
-          <div class="card-header d-flex justify-content-between align-items-center">
-            <span>Status & Controls</span>
-            <div id="service-status"><span class="spinner-border spinner-border-sm" role="status"></span> Checking...</div>
-          </div>
-          <div class="card-body">
-            <div class="text-center mb-4">
-              <div id="status-animation" class="animation-container"></div>
-            </div>
-            
-            <div class="d-flex justify-content-center gap-2 mb-4">
-              <button id="btn-start" class="btn btn-success" disabled>
-                <i class="fas fa-play me-2"></i>Start
-              </button>
-              <button id="btn-stop" class="btn btn-danger" disabled>
-                <i class="fas fa-stop me-2"></i>Stop
-              </button>
-              <button id="btn-restart" class="btn btn-primary" disabled>
-                <i class="fas fa-sync-alt me-2"></i>Restart
-              </button>
-              <button id="btn-diagnostic" class="btn btn-outline-secondary" title="Run diagnostics">
-                <i class="fas fa-stethoscope me-2"></i>
-              </button>
-            </div>
-            
-            <h5 class="section-title">Activity</h5>
-            <div id="activity-feed" class="activity-feed">
-              <div class="activity-item d-flex align-items-center">
-                <div class="activity-icon icon-blue">
-                  <i class="fas fa-sync-alt"></i>
-                </div>
-                <div>Loading activity...</div>
-              </div>
-            </div>
+    <div class="row mb-4">
+      <div class="col-md-3">
+        <div class="card text-center p-4">
+          <div class="fs-1 text-primary mb-2"><i class="fas fa-film"></i></div>
+          <div class="fs-1 fw-bold text-primary" id="english-movies-count">0</div>
+          <div>English Movies</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card text-center p-4">
+          <div class="fs-1 text-primary mb-2"><i class="fas fa-film"></i></div>
+          <div class="fs-1 fw-bold text-primary" id="malayalam-movies-count">0</div>
+          <div>Malayalam Movies</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card text-center p-4">
+          <div class="fs-1 text-primary mb-2"><i class="fas fa-tv"></i></div>
+          <div class="fs-1 fw-bold text-primary" id="english-tv-count">0</div>
+          <div>English TV Shows</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card text-center p-4">
+          <div class="fs-1 text-primary mb-2"><i class="fas fa-tv"></i></div>
+          <div class="fs-1 fw-bold text-primary" id="malayalam-tv-count">0</div>
+          <div>Malayalam TV Shows</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span>Status & Controls</span>
+        <span id="status-badge" class="badge bg-danger px-3 py-2">Stopped</span>
+      </div>
+      <div class="card-body">
+        <div class="d-flex justify-content-center gap-2 mb-4">
+          <button id="start-btn" class="btn btn-success"><i class="fas fa-play me-2"></i>Start</button>
+          <button id="stop-btn" class="btn btn-danger"><i class="fas fa-stop me-2"></i>Stop</button>
+          <button id="restart-btn" class="btn btn-primary"><i class="fas fa-sync-alt me-2"></i>Restart</button>
+          <button id="diagnostics-btn" class="btn btn-warning"><i class="fas fa-stethoscope me-2"></i>Run Diagnostics</button>
+        </div>
+        <div id="activity-log" class="mt-3">
+          <h5>Activity</h5>
+          <div class="p-2 border-bottom">
+            <span class="badge bg-info rounded-circle me-2"><i class="fas fa-info"></i></span>
+            <span id="activity-message">Service is not running</span>
           </div>
         </div>
       </div>
-      
-      <!-- Tabbed Content Card -->
-      <div class="col-md-7 mb-4">
-        <div class="card h-100">
-          <div class="card-header">
-            <ul class="nav nav-tabs card-header-tabs" id="myTab" role="tablist">
-              <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="config-tab" data-bs-toggle="tab" data-bs-target="#config" type="button" role="tab">Configuration</button>
-              </li>
-              <li class="nav-item" role="presentation">
-                <button class="nav-link" id="logs-tab" data-bs-toggle="tab" data-bs-target="#logs" type="button" role="tab">Logs</button>
-              </li>
-              <li class="nav-item" role="presentation">
-                <button class="nav-link" id="statistics-tab" data-bs-toggle="tab" data-bs-target="#statistics" type="button" role="tab">Statistics</button>
-              </li>
-            </ul>
-          </div>
-          <div class="card-body">
-            <div class="tab-content" id="myTabContent">
-              <!-- Configuration Tab -->
-              <div class="tab-pane fade show active" id="config" role="tabpanel" aria-labelledby="config-tab">
-                <h5 class="mb-4">Media Paths Configuration</h5>
-                <form id="config-form">
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <ul class="nav nav-tabs card-header-tabs" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="smb-tab" data-bs-toggle="tab" data-bs-target="#smb-settings" type="button" role="tab">SMB Settings</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="logs-tab" data-bs-toggle="tab" data-bs-target="#logs" type="button" role="tab">Logs</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="paths-tab" data-bs-toggle="tab" data-bs-target="#media-paths" type="button" role="tab">Media Paths</button>
+          </li>
+        </ul>
+      </div>
+      <div class="card-body">
+        <div class="tab-content">
+          <div class="tab-pane fade show active" id="smb-settings" role="tabpanel">
+            <form id="smb-form">
+              <div class="row">
+                <div class="col-md-6">
                   <div class="mb-3">
-                    <label for="source-dir" class="form-label">Source Directory</label>
-                    <div class="input-group">
-                      <span class="input-group-text"><i class="fas fa-folder"></i></span>
-                      <input type="text" class="form-control" id="source-dir" placeholder="/path/to/downloads">
-                    </div>
-                    <div class="path-info">Directory to monitor for new media files</div>
+                    <label class="form-label">SMB Server</label>
+                    <input type="text" class="form-control" id="smb-server" value="streamwave.local">
                   </div>
-                  
-                  <h6 class="mt-4 mb-3">Destination Paths</h6>
-                  
                   <div class="mb-3">
-                    <label for="english-movies" class="form-label">English Movies</label>
-                    <div class="input-group">
-                      <span class="input-group-text"><i class="fas fa-film"></i></span>
-                      <input type="text" class="form-control" id="english-movies" placeholder="media/movies">
-                    </div>
+                    <label class="form-label">SMB Share</label>
+                    <input type="text" class="form-control" id="smb-share" value="Data-Streamwave">
                   </div>
-                  
-                  <div class="mb-3">
-                    <label for="english-tv" class="form-label">English TV Shows</label>
-                    <div class="input-group">
-                      <span class="input-group-text"><i class="fas fa-tv"></i></span>
-                      <input type="text" class="form-control" id="english-tv" placeholder="media/tv-shows">
-                    </div>
-                  </div>
-                  
-                  <div class="mb-3">
-                    <label for="malayalam-movies" class="form-label">Malayalam Movies</label>
-                    <div class="input-group">
-                      <span class="input-group-text"><i class="fas fa-film"></i></span>
-                      <input type="text" class="form-control" id="malayalam-movies" placeholder="media/malayalam movies">
-                    </div>
-                  </div>
-                  
-                  <div class="mb-3">
-                    <label for="malayalam-tv" class="form-label">Malayalam TV Shows</label>
-                    <div class="input-group">
-                      <span class="input-group-text"><i class="fas fa-tv"></i></span>
-                      <input type="text" class="form-control" id="malayalam-tv" placeholder="media/malayalam-tv-shows">
-                    </div>
-                  </div>
-                  
-                  <h6 class="mt-4 mb-3">SMB Server Settings</h6>
-                  
-                  <div class="row">
-                    <div class="col-md-6 mb-3">
-                      <label for="smb-server" class="form-label">SMB Server</label>
-                      <div class="input-group">
-                        <span class="input-group-text"><i class="fas fa-server"></i></span>
-                        <input type="text" class="form-control" id="smb-server" placeholder="server.local">
-                      </div>
-                    </div>
-                    
-                    <div class="col-md-6 mb-3">
-                      <label for="smb-share" class="form-label">SMB Share</label>
-                      <div class="input-group">
-                        <span class="input-group-text"><i class="fas fa-share-alt"></i></span>
-                        <input type="text" class="form-control" id="smb-share" placeholder="Media">
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <h6 class="mt-4 mb-3">Cleanup Options</h6>
-                  
-                  <div class="form-check form-switch mb-3">
-                    <input class="form-check-input" type="checkbox" id="cleanup-rar" checked>
-                    <label class="form-check-label" for="cleanup-rar">Clean up RAR files</label>
-                  </div>
-                  
-                  <div class="form-check form-switch mb-3">
-                    <input class="form-check-input" type="checkbox" id="cleanup-empty" checked>
-                    <label class="form-check-label" for="cleanup-empty">Clean up empty directories</label>
-                  </div>
-                  
-                  <div class="text-end mt-4">
-                    <button type="button" id="btn-save-config" class="btn btn-primary btn-save">
-                      <i class="fas fa-save me-2"></i>Save Changes
-                    </button>
-                  </div>
-                </form>
-              </div>
-              
-              <!-- Logs Tab -->
-              <div class="tab-pane fade" id="logs" role="tabpanel" aria-labelledby="logs-tab">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                  <h5 class="mb-0">System Logs</h5>
-                  <button id="refresh-logs" class="btn btn-sm btn-outline-primary">
-                    <i class="fas fa-sync-alt me-1"></i> Refresh
-                  </button>
                 </div>
-                <div id="logs-content" class="logs">Loading logs...</div>
-              </div>
-              
-              <!-- Statistics Tab -->
-              <div class="tab-pane fade" id="statistics" role="tabpanel" aria-labelledby="statistics-tab">
-                <div class="container">
-                  <h2 class="section-title mb-4">Media Processing Statistics</h2>
-                  
-                  <!-- Main Stats -->
-                  <div class="row">
-                    <div class="col-md-3 col-sm-6 mb-4">
-                      <div class="stat-card pulse-subtle">
-                        <div class="stat-icon">
-                          <i class="fas fa-file-video"></i>
-                        </div>
-                        <div class="stat-number" id="files-processed">0</div>
-                        <div class="stat-label">Files Processed</div>
-                      </div>
-                    </div>
-                    
-                    <div class="col-md-3 col-sm-6 mb-4">
-                      <div class="stat-card pulse-subtle">
-                        <div class="stat-icon">
-                          <i class="fas fa-clock"></i>
-                        </div>
-                        <div class="stat-number" id="uptime-value">1d 2h 34m</div>
-                        <div class="stat-label">Uptime</div>
-                      </div>
-                    </div>
-                    
-                    <div class="col-md-3 col-sm-6 mb-4">
-                      <div class="stat-card pulse-subtle">
-                        <div class="stat-icon">
-                          <i class="fas fa-film"></i>
-                        </div>
-                        <div class="stat-number" id="movies-count">0</div>
-                        <div class="stat-label">Movies</div>
-                      </div>
-                    </div>
-                    
-                    <div class="col-md-3 col-sm-6 mb-4">
-                      <div class="stat-card pulse-subtle">
-                        <div class="stat-icon">
-                          <i class="fas fa-tv"></i>
-                        </div>
-                        <div class="stat-number" id="tvshows-count">0</div>
-                        <div class="stat-label">TV Shows</div>
-                      </div>
-                    </div>
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label class="form-label">Username</label>
+                    <input type="text" class="form-control" id="smb-username" value="sharvinzlife">
                   </div>
-                  
-                  <!-- Detailed Category Stats -->
-                  <h3 class="category-title mb-3">Media Categories <span class="badge bg-primary">Details</span></h3>
-                  <div class="row">
-                    <div class="col-md-3 col-sm-6 mb-4">
-                      <div class="cat-stat-card">
-                        <div class="cat-icon">
-                          <i class="fas fa-film text-success"></i> 
-                          <i class="flag-icon">🇬🇧</i>
-                        </div>
-                        <div class="cat-stat-number" id="english-movies-count">0</div>
-                        <div class="cat-stat-label">English Movies</div>
-                      </div>
-                    </div>
-                    
-                    <div class="col-md-3 col-sm-6 mb-4">
-                      <div class="cat-stat-card">
-                        <div class="cat-icon">
-                          <i class="fas fa-tv text-success"></i>
-                          <i class="flag-icon">🇬🇧</i>
-                        </div>
-                        <div class="cat-stat-number" id="english-tvshows-count">0</div>
-                        <div class="cat-stat-label">English TV Shows</div>
-                      </div>
-                    </div>
-                    
-                    <div class="col-md-3 col-sm-6 mb-4">
-                      <div class="cat-stat-card">
-                        <div class="cat-icon">
-                          <i class="fas fa-film text-primary"></i>
-                          <i class="flag-icon">🇮🇳</i>
-                        </div>
-                        <div class="cat-stat-number" id="malayalam-movies-count">0</div>
-                        <div class="cat-stat-label">Malayalam Movies</div>
-                      </div>
-                    </div>
-                    
-                    <div class="col-md-3 col-sm-6 mb-4">
-                      <div class="cat-stat-card">
-                        <div class="cat-icon">
-                          <i class="fas fa-tv text-primary"></i>
-                          <i class="flag-icon">🇮🇳</i>
-                        </div>
-                        <div class="cat-stat-number" id="malayalam-tvshows-count">0</div>
-                        <div class="cat-stat-label">Malayalam TV Shows</div>
-                      </div>
-                    </div>
+                  <div class="mb-3">
+                    <label class="form-label">Password</label>
+                    <input type="password" class="form-control" id="smb-password" value="Tkrw%S$!H2rAPC6x">
                   </div>
-                  
-                  <div class="stats-footer">
-                    Statistics are gathered from log analysis
-                  </div>
-                  
                 </div>
               </div>
+              <div class="d-flex justify-content-between">
+                <button type="button" id="test-connection-btn" class="btn btn-info">
+                  <i class="fas fa-network-wired me-2"></i>Test Connection
+                </button>
+                <button type="button" id="diagnose-smb-btn" class="btn btn-secondary">
+                  <i class="fas fa-search me-2"></i>Diagnose SMB Issues
+                </button>
+                <button type="submit" class="btn btn-primary">Save Settings</button>
+              </div>
+            </form>
+            
+            <!-- SMB Diagnostic Results -->
+            <div id="smb-diagnostic-results" class="diagnostic-result mt-3" style="display: none;">
+              <h5>SMB Connection Diagnostics</h5>
+              <div id="smb-test-results"></div>
             </div>
+          </div>
+          <div class="tab-pane fade" id="logs" role="tabpanel">
+            <div class="d-flex justify-content-between mb-3">
+              <h5>Recent Logs</h5>
+              <button id="refresh-logs-btn" class="btn btn-sm btn-outline-primary">
+                <i class="fas fa-sync-alt me-2"></i>Refresh
+              </button>
+            </div>
+            <div class="bg-dark text-light p-3 rounded" style="height: 300px; overflow-y: auto;">
+              <pre id="logs-content">Loading logs...</pre>
+            </div>
+          </div>
+          <div class="tab-pane fade" id="media-paths" role="tabpanel">
+            <form id="paths-form">
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label class="form-label">English Movies Path</label>
+                    <input type="text" class="form-control" id="english-movies-path" value="media/movies">
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label">English TV Shows Path</label>
+                    <input type="text" class="form-control" id="english-tv-path" value="media/tv-shows">
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label class="form-label">Malayalam Movies Path</label>
+                    <input type="text" class="form-control" id="malayalam-movies-path" value="media/malayalam movies">
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label">Malayalam TV Shows Path</label>
+                    <input type="text" class="form-control" id="malayalam-tv-path" value="media/malayalam-tv-shows">
+                  </div>
+                </div>
+              </div>
+              <div class="d-flex justify-content-end">
+                <button type="submit" class="btn btn-primary">Save Paths</button>
+              </div>
+            </form>
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <div class="creator-footer">
-    <a href="https://sharvinzlife.com/" target="_blank" class="creator-link">
-      <span class="heart-icon"><i class="fas fa-heart"></i></span>
-      Created with <span class="heart-beat">❤️</span> by Sharvinzlife
-      <span class="creator-emoji">✨</span>
-    </a>
-  </div>
+  <footer class="footer text-center">
+    <div class="container">
+      <p>© 2025 All Rights Reserved. Created with <span class="heart-beat">❤</span> by 
+        <a href="https://sharvinzlife.com/" target="_blank" class="text-decoration-none">sharvinzlife</a> 
+        <span class="emoji-rotate">🎬</span>
+      </p>
+    </div>
+  </footer>
 
-  <div id="toast-container"></div>
+  <div class="toast-container"></div>
 
-  <!-- Scripts -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.3/dist/jquery.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/lottie-web@5.9.6/build/player/lottie.min.js"></script>
-  
   <script>
-    const API_BASE = '/api';
-    let serviceStatus = 'unknown';
-    let statusAnimation;
-    let processingAnimation;
-    
-    // Theme switcher functionality
-    const themeSwitch = document.getElementById('checkbox');
-    const htmlElement = document.documentElement;
-    
-    // Check for saved theme preference
-    if (localStorage.getItem('theme') === 'dark') {
-      htmlElement.setAttribute('data-theme', 'dark');
-      themeSwitch.checked = true;
-    } else {
-      htmlElement.setAttribute('data-theme', 'light');
-      themeSwitch.checked = false;
-    }
-    
-    // Add event listener for theme switch
-    themeSwitch.addEventListener('change', function() {
-      if (this.checked) {
-        htmlElement.setAttribute('data-theme', 'dark');
-        localStorage.setItem('theme', 'dark');
-        showToast('Theme Changed', 'Dark mode activated', 'info');
-      } else {
-        htmlElement.setAttribute('data-theme', 'light');
-        localStorage.setItem('theme', 'light');
-        showToast('Theme Changed', 'Light mode activated', 'info');
-      }
-      
-      // Reload animation to update colors
-      if (statusAnimation) {
-        statusAnimation.destroy();
-        loadStatusAnimation();
-      }
-    });
-    
-    // Header scroll effect
-    window.addEventListener('scroll', function() {
-      const header = document.querySelector('.header');
-      if (window.scrollY > 20) {
-        header.classList.add('scrolled');
-      } else {
-        header.classList.remove('scrolled');
-      }
-    });
-    
-    function loadStatusAnimation() {
-      statusAnimation = lottie.loadAnimation({
-        container: document.getElementById('status-animation'),
-        renderer: 'svg',
-        loop: true,
-        autoplay: true,
-        path: 'https://assets7.lottiefiles.com/packages/lf20_yvzoqbub.json' // Media files animation
-      });
-    }
-    
-    // Initialize animations
-    document.addEventListener('DOMContentLoaded', () => {
-      // Load the status animation
-      loadStatusAnimation();
-      
-      // Set up refresh interval for status, logs, and uptime
-      fetchServiceStatus();
-      fetchLogs();
-      updateUptime(); // Call our improved uptime function immediately
-      
-      setInterval(fetchServiceStatus, 5000); // Update status every 5 seconds
-      setInterval(fetchLogs, 10000); // Update logs every 10 seconds
-      setInterval(updateUptime, 60000); // Update uptime every minute
-      
-      // Load configuration
-      fetchConfig();
-      
-      // Set up event listeners
-      setupEventListeners();
-      
-      // Show a welcome toast
-      showToast('Welcome to Media Processor', 'The interface is ready to use.', 'success');
-    });
-    
-    function setupEventListeners() {
-      // Refresh logs button
-      document.getElementById('refresh-logs').addEventListener('click', fetchLogs);
-      
-      // Service control buttons
-      document.getElementById('btn-start').addEventListener('click', () => controlService('start'));
-      document.getElementById('btn-stop').addEventListener('click', () => controlService('stop'));
-      document.getElementById('btn-restart').addEventListener('click', () => controlService('restart'));
-      
-      // Save configuration button
-      document.getElementById('btn-save-config').addEventListener('click', saveConfig);
-      
-      // Add event handler for the diagnostic button
-      document.getElementById('btn-diagnostic').addEventListener('click', runDiagnostics);
-    }
-    
-    // Fetch actual configuration from server
-    function fetchConfig() {
-      fetch(`${API_BASE}/config`)
-        .then(response => response.json())
-        .then(data => {
-          document.getElementById('source-dir').value = data.sourceDir || '';
-          document.getElementById('english-movies').value = data.englishMoviePath || '';
-          document.getElementById('english-tv').value = data.englishTvPath || '';
-          document.getElementById('malayalam-movies').value = data.malayalamMoviePath || '';
-          document.getElementById('malayalam-tv').value = data.malayalamTvPath || '';
-          document.getElementById('smb-server').value = data.smbServer || '';
-          document.getElementById('smb-share').value = data.smbShare || '';
-          
-          // Extract boolean values from string (might include comments)
-          document.getElementById('cleanup-rar').checked = data.cleanupRarFiles && data.cleanupRarFiles.includes('true');
-          document.getElementById('cleanup-empty').checked = data.cleanupEmptyDirs && data.cleanupEmptyDirs.includes('true');
-        })
-        .catch(error => {
-          console.error('Error fetching config:', error);
-          // Fall back to default values
-          document.getElementById('source-dir').value = '/home/sharvinzlife/Documents/JDownloader/';
-          document.getElementById('english-movies').value = 'media/movies';
-          document.getElementById('english-tv').value = 'media/tv-shows';
-          document.getElementById('malayalam-movies').value = 'media/malayalam movies';
-          document.getElementById('malayalam-tv').value = 'media/malayalam-tv-shows';
-          document.getElementById('smb-server').value = 'streamwave.local';
-          document.getElementById('smb-share').value = 'Data-Streamwave';
-          document.getElementById('cleanup-rar').checked = true;
-          document.getElementById('cleanup-empty').checked = true;
-        });
-    }
-    
-    function saveConfig() {
-      // Collect form data
-      const config = {
-        sourceDir: document.getElementById('source-dir').value,
-        englishMoviePath: document.getElementById('english-movies').value,
-        englishTvPath: document.getElementById('english-tv').value,
-        malayalamMoviePath: document.getElementById('malayalam-movies').value,
-        malayalamTvPath: document.getElementById('malayalam-tv').value,
-        smbServer: document.getElementById('smb-server').value,
-        smbShare: document.getElementById('smb-share').value,
-        cleanupRarFiles: document.getElementById('cleanup-rar').checked,
-        cleanupEmptyDirs: document.getElementById('cleanup-empty').checked
-      };
-      
-      // Call API to save configuration
-      fetch(`${API_BASE}/config`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ config })
-      })
-        .then(response => response.json())
-        .then(data => {
-          if (data.success) {
-            showToast('Configuration Saved', 'Your settings have been updated.', 'success');
-          } else {
-            showToast('Error', data.error || 'Failed to save configuration', 'error');
-          }
-        })
-        .catch(error => {
-          console.error('Error saving config:', error);
-          showToast('Error', 'Failed to save configuration: ' + error.message, 'error');
-        });
-    }
-    
-    function fetchServiceStatus() {
-      fetch(`${API_BASE}/status`)
-        .then(response => response.json())
-        .then(data => {
-          updateServiceStatus(data.status);
-          updateActivityFeed();
-        })
-        .catch(error => {
-          console.error('Error fetching status:', error);
-          updateServiceStatus('error');
-        });
-    }
-    
-    function updateServiceStatus(status) {
-      serviceStatus = status;
-      const statusElement = document.getElementById('service-status');
-      const statusClasses = {
-        'running': 'badge bg-success',
-        'stopped': 'badge bg-danger',
-        'error': 'badge bg-warning'
-      };
-      
-      const statusLabels = {
-        'running': 'Running',
-        'stopped': 'Stopped',
-        'error': 'Error'
-      };
-      
-      const statusClass = statusClasses[status] || 'badge bg-secondary';
-      const statusLabel = statusLabels[status] || 'Unknown';
-      
-      statusElement.innerHTML = `<span class="${statusClass}">${statusLabel}</span>`;
-      
-      // Update animation based on status
-      if (status === 'running') {
-        statusAnimation.play();
-      } else {
-        statusAnimation.pause();
-      }
-      
-      // Update control buttons
-      document.getElementById('btn-start').disabled = (status === 'running');
-      document.getElementById('btn-stop').disabled = (status === 'stopped');
-      document.getElementById('btn-restart').disabled = (status === 'stopped');
-    }
-    
-    function fetchLogs() {
-      fetch(`${API_BASE}/logs`)
-        .then(response => response.json())
-        .then(data => {
-          const logsElement = document.getElementById('logs-content');
-          logsElement.textContent = data.logs.join('\n');
-          
-          // Also update stats based on logs
-          updateStats(data.logs);
-        })
-        .catch(error => {
-          console.error('Error fetching logs:', error);
-          document.getElementById('logs-content').textContent = 'Error loading logs: ' + error.message;
-        });
-    }
-    
-    function controlService(action) {
-      // Show a loading toast
-      showToast('Service Control', `Initiating ${action}...`, 'info');
-      
-      // Define the specific service name to control
-      const serviceName = 'media-processor';
-      
-      fetch(`${API_BASE}/service/${action}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ 
-          service: serviceName
-        })
-      })
-        .then(response => {
-          if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-          }
-          return response.json();
-        })
-        .then(data => {
-          if (data.success) {
-            showToast('Service Control', `Service ${action} initiated successfully.`, 'success');
-            
-            // Update status immediately to show current state
-            updateServiceStatus(action === 'stop' ? 'stopped' : 'running');
-            
-            // Then refresh actual status after a delay to allow service to change state
-            setTimeout(fetchServiceStatus, 3000);
-          } else {
-            showToast('Service Control Error', data.error || `Failed to ${action} service`, 'error');
-            console.error('Service control error:', data);
-          }
-        })
-        .catch(error => {
-          console.error(`Error ${action} service:`, error);
-          showToast('Service Control Error', `Failed to ${action} service. Check that you have necessary permissions.`, 'error');
-          
-          // Refresh status to ensure UI is in sync with actual state
-          setTimeout(fetchServiceStatus, 1000);
-        });
-    }
-    
-    function updateActivityFeed() {
-      const activities = [
-        { icon: 'fa-film', type: 'icon-blue', text: 'Checking for new media files' },
-        { icon: 'fa-folder-open', type: 'icon-green', text: 'Creating directory structure' },
-        { icon: 'fa-exchange-alt', type: 'icon-blue', text: 'Transferring files to NAS' }
-      ];
-      
-      if (serviceStatus !== 'running') {
-        const activityFeed = document.getElementById('activity-feed');
-        activityFeed.innerHTML = `
-          <div class="activity-item d-flex align-items-center">
-            <div class="activity-icon icon-red">
-              <i class="fas fa-pause"></i>
-            </div>
-            <div>Service is not running</div>
-          </div>
-        `;
-        return;
-      }
-      
-      // Generate random activities
-      const activityFeed = document.getElementById('activity-feed');
-      activityFeed.innerHTML = activities.map(activity => `
-        <div class="activity-item d-flex align-items-center">
-          <div class="activity-icon ${activity.type}">
-            <i class="fas ${activity.icon}"></i>
-          </div>
-          <div>${activity.text}</div>
-        </div>
-      `).join('');
-    }
-    
-    function updateStats(logs) {
-      // Extract stats from logs
-      let movieCount = 0;
-      let tvCount = 0;
-      
-      // Add detailed category counters
-      let englishMovieCount = 0;
-      let englishTvCount = 0;
-      let malayalamMovieCount = 0;
-      let malayalamTvCount = 0;
-      
-      // Count movies and TV shows from logs
-      logs.forEach(log => {
-        if (log.includes('Identified as movie:')) {
-          movieCount++;
-          // Check if it's Malayalam or English
-          if (log.includes('Identified language: malayalam')) {
-            malayalamMovieCount++;
-          } else {
-            englishMovieCount++;
-          }
-        }
-        
-        if (log.includes('Identified as tvshow:')) {
-          tvCount++;
-          // Check if it's Malayalam or English
-          if (log.includes('Identified language: malayalam')) {
-            malayalamTvCount++;
-          } else {
-            englishTvCount++;
-          }
-        }
-      });
-      
-      // Update UI for overall stats
-      document.getElementById('files-processed').textContent = movieCount + tvCount;
-      document.getElementById('movies-count').textContent = movieCount;
-      document.getElementById('tvshows-count').textContent = tvCount;
-      
-      // Update detailed category stats
-      document.getElementById('english-movies-count').textContent = englishMovieCount;
-      document.getElementById('english-tvshows-count').textContent = englishTvCount;
-      document.getElementById('malayalam-movies-count').textContent = malayalamMovieCount;
-      document.getElementById('malayalam-tvshows-count').textContent = malayalamTvCount;
-      
-      // Remove uptime calculation from here to prevent overwriting the value from updateUptime()
-      // The dedicated updateUptime() function will handle this separately
-    }
-    
-    // Ensure the updateUptime function always shows non-zero values with mock data if needed
-    function updateUptime() {
-      const uptimeElement = document.getElementById('uptime-value');
-      
-      // Always show a non-zero uptime value when the service is running
-      if (serviceStatus === 'running') {
-        // Use a consistent mock value that won't change on refresh
-        uptimeElement.textContent = '1d 2h 34m';
-        return;
-      }
-      
-      // If service is not running, show zeros
-      uptimeElement.textContent = '0d 0h 0m';
-    }
-    
-    function showToast(title, message, type = 'info') {
-      const toastContainer = document.getElementById('toast-container');
-      const toastId = 'toast-' + Date.now();
-      
-      const toastHtml = `
-        <div id="${toastId}" class="custom-toast alert alert-${type === 'success' ? 'success' : type === 'error' ? 'danger' : 'info'}">
-          <div class="d-flex">
-            <div class="toast-body">
-              <strong>${title}</strong><br>
-              ${message}
-            </div>
-            <button type="button" class="btn-close me-2 m-auto" onclick="document.getElementById('${toastId}').remove()"></button>
-          </div>
+    // Theme toggle functionality
+    document.addEventListener('DOMContentLoaded', function() {
+      const themeToggle = document.createElement('div');
+      themeToggle.innerHTML = `
+        <div style="position:fixed;top:20px;right:20px;z-index:1000;background:rgba(255,255,255,0.2);padding:10px;border-radius:50px;backdrop-filter:blur(5px);">
+          <button id="theme-toggle" class="btn btn-sm btn-outline-primary">
+            <i class="fas fa-moon"></i>
+          </button>
         </div>
       `;
+      document.body.appendChild(themeToggle);
       
-      toastContainer.insertAdjacentHTML('beforeend', toastHtml);
-      
-      // Auto-remove after 5 seconds
-      setTimeout(() => {
-        const toastElement = document.getElementById(toastId);
-        if (toastElement) toastElement.remove();
-      }, 5000);
-    }
-
-    function fetchStatistics() {
-      fetch('/api/statistics')
-        .then(response => response.json())
-        .then(data => {
-          document.getElementById('files-processed').textContent = data.filesProcessed || 0;
-          document.getElementById('movies-count').textContent = data.movies || 0;
-          document.getElementById('tvshows-count').textContent = data.tvShows || 0;
-          
-          // If we get uptime info from API, update localStorage
-          if (data.startTime) {
-            localStorage.setItem('serviceStartTime', data.startTime);
-            updateUptime();
-          }
-        })
-        .catch(error => {
-          console.error('Error fetching statistics:', error);
-        });
-    }
-
-    function runDiagnostics() {
-      showToast('Diagnostics', 'Running system diagnostics...', 'info');
-      
-      fetch(`${API_BASE}/diagnostics`)
-        .then(response => response.json())
-        .then(data => {
-          console.log('Diagnostic results:', data);
-          
-          let diagnosticMessage = `
-            <strong>System User:</strong> ${data.user}<br>
-            <strong>SystemCtl Access:</strong> ${data.systemCtlAccess ? '✅' : '❌'}<br>
-            <strong>Service Exists:</strong> ${data.serviceExists ? '✅' : '❌'}<br>
-            <strong>Service Status:</strong> ${data.serviceStatus || 'Unknown'}<br>
-            <strong>Log Access:</strong> ${data.logs.readable ? '✅' : '❌'}<br>
-          `;
-          
-          if (data.logs.lastLines && data.logs.lastLines.length > 0) {
-            diagnosticMessage += `<br><strong>Recent Logs:</strong><br>
-            <code>${data.logs.lastLines.join('<br>')}</code>`;
-          }
-          
-          // Create a modal with diagnostic information
-          const modalId = 'diagnostic-modal';
-          const modalHtml = `
-            <div class="modal fade" id="${modalId}" tabindex="-1" aria-hidden="true">
-              <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                  <div class="modal-header">
-                    <h5 class="modal-title">System Diagnostics</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                  </div>
-                  <div class="modal-body">
-                    ${diagnosticMessage}
-                  </div>
-                  <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          `;
-          
-          // Add modal to the document if it doesn't exist
-          if (!document.getElementById(modalId)) {
-            document.body.insertAdjacentHTML('beforeend', modalHtml);
-          } else {
-            document.getElementById(modalId).innerHTML = modalHtml;
-          }
-          
-          // Show the modal
-          const modal = new bootstrap.Modal(document.getElementById(modalId));
-          modal.show();
-        })
-        .catch(error => {
-          console.error('Diagnostics error:', error);
-          showToast('Diagnostics Error', `Failed to run diagnostics: ${error.message}`, 'error');
-        });
-    }
-
-    // Replace the demo function with one that uses data from the logs
-    function updateDetailedStatistics() {
-      // This function is now a wrapper to fetch updated logs
-      // and then the updateStats function will update all UI elements
-      fetch(`${API_BASE}/logs`)
-        .then(response => response.json())
-        .then(data => {
-          // Update stats based on logs
-          updateStats(data.logs);
-        })
-        .catch(error => {
-          console.error('Error fetching logs for statistics:', error);
-        });
-    }
-    
-    // Call this when loading the statistics tab
-    document.addEventListener('DOMContentLoaded', function() {
-      // Add event listener for statistics tab click to update detailed stats
-      document.getElementById('statistics-tab').addEventListener('click', function() {
-        updateDetailedStatistics();
+      const toggleBtn = document.getElementById('theme-toggle');
+      toggleBtn.addEventListener('click', function() {
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        if (currentTheme === 'light') {
+          document.documentElement.setAttribute('data-theme', 'dark');
+          toggleBtn.innerHTML = '<i class="fas fa-sun"></i>';
+        } else {
+          document.documentElement.setAttribute('data-theme', 'light');
+          toggleBtn.innerHTML = '<i class="fas fa-moon"></i>';
+        }
       });
-      
-      // Initialize stats on first load
-      updateDetailedStatistics();
+
+      // API functions
+      const API = {
+        getStatus: async function() {
+          try {
+            const response = await fetch('/api/status');
+            return await response.json();
+          } catch (error) {
+            console.error('Error fetching status:', error);
+            return { status: 'unknown' };
+          }
+        },
+        
+        getLogs: async function() {
+          try {
+            const response = await fetch('/api/logs');
+            return await response.json();
+          } catch (error) {
+            console.error('Error fetching logs:', error);
+            return { success: false, logs: [] };
+          }
+        },
+        
+        getSettings: async function() {
+          try {
+            const response = await fetch('/api/settings');
+            return await response.json();
+          } catch (error) {
+            console.error('Error fetching settings:', error);
+            return {};
+          }
+        },
+        
+        saveSettings: async function(settings) {
+          try {
+            const response = await fetch('/api/settings', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(settings)
+            });
+            return await response.json();
+          } catch (error) {
+            console.error('Error saving settings:', error);
+            return { success: false };
+          }
+        },
+        
+        startService: async function() {
+          try {
+            const response = await fetch('/api/service/start', {
+              method: 'POST'
+            });
+            return await response.json();
+          } catch (error) {
+            console.error('Error starting service:', error);
+            return { success: false };
+          }
+        },
+        
+        stopService: async function() {
+          try {
+            const response = await fetch('/api/service/stop', {
+              method: 'POST'
+            });
+            return await response.json();
+          } catch (error) {
+            console.error('Error stopping service:', error);
+            return { success: false };
+          }
+        },
+        
+        restartService: async function() {
+          try {
+            const response = await fetch('/api/service/restart', {
+              method: 'POST'
+            });
+            return await response.json();
+          } catch (error) {
+            console.error('Error restarting service:', error);
+            return { success: false };
+          }
+        },
+        
+        runDiagnostics: async function() {
+          try {
+            const response = await fetch('/api/diagnostics');
+            return await response.json();
+          } catch (error) {
+            console.error('Error running diagnostics:', error);
+            return { success: false };
+          }
+        },
+        
+        testConnection: async function(server, share, user, password, anonymous = false) {
+          try {
+            const response = await fetch('/api/test-connection', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ server, share, user, password, anonymous })
+            });
+            return await response.json();
+          } catch (error) {
+            console.error('Error testing connection:', error);
+            return { success: false, error: 'Network error' };
+          }
+        },
+        
+        diagnoseSMB: async function() {
+          try {
+            const response = await fetch('/api/diagnose-smb');
+            return await response.json();
+          } catch (error) {
+            console.error('Error diagnosing SMB:', error);
+            return { success: false, error: 'Network error' };
+          }
+        }
+      };
+
+      // Show toast notification
+      function showToast(message, type = 'info') {
+        const toastContainer = document.querySelector('.toast-container');
+        const toast = document.createElement('div');
+        toast.className = `toast show bg-${type === 'error' ? 'danger' : type === 'success' ? 'success' : 'info'}`;
+        toast.innerHTML = `
+          <div class="toast-header">
+            <strong class="me-auto">Media Processor</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+          </div>
+          <div class="toast-body text-white">
+            ${message}
+          </div>
+        `;
+        toastContainer.appendChild(toast);
+        
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+          toast.remove();
+        }, 5000);
+      }
+
+      // Update UI based on service status
+      function updateStatusUI(status) {
+        const statusBadge = document.getElementById('status-badge');
+        const activityMessage = document.getElementById('activity-message');
+        
+        if (status === 'active') {
+          statusBadge.className = 'badge bg-success px-3 py-2';
+          statusBadge.textContent = 'Running';
+          activityMessage.textContent = 'Service is running';
+        } else {
+          statusBadge.className = 'badge bg-danger px-3 py-2';
+          statusBadge.textContent = 'Stopped';
+          activityMessage.textContent = 'Service is not running';
+        }
+      }
+
+      // Load initial status
+      API.getStatus().then(data => {
+        updateStatusUI(data.status);
+      });
+
+      // Load logs
+      function loadLogs() {
+        const logsContent = document.getElementById('logs-content');
+        logsContent.textContent = 'Loading logs...';
+        
+        API.getLogs().then(data => {
+          if (data.success && data.logs && data.logs.length > 0) {
+            logsContent.textContent = data.logs.join('\n');
+          } else {
+            logsContent.textContent = 'No logs available';
+          }
+        });
+      }
+
+      // Load settings
+      function loadSettings() {
+        API.getSettings().then(settings => {
+          if (Object.keys(settings).length > 0) {
+            // SMB Settings
+            if (settings.SMB_SERVER) document.getElementById('smb-server').value = settings.SMB_SERVER;
+            if (settings.SMB_SHARE) document.getElementById('smb-share').value = settings.SMB_SHARE;
+            if (settings.SMB_USER) document.getElementById('smb-username').value = settings.SMB_USER;
+            if (settings.SMB_PASSWORD) document.getElementById('smb-password').value = settings.SMB_PASSWORD;
+            
+            // Media Paths
+            if (settings.ENGLISH_MOVIE_PATH) document.getElementById('english-movies-path').value = settings.ENGLISH_MOVIE_PATH;
+            if (settings.ENGLISH_TV_PATH) document.getElementById('english-tv-path').value = settings.ENGLISH_TV_PATH;
+            if (settings.MALAYALAM_MOVIE_PATH) document.getElementById('malayalam-movies-path').value = settings.MALAYALAM_MOVIE_PATH;
+            if (settings.MALAYALAM_TV_PATH) document.getElementById('malayalam-tv-path').value = settings.MALAYALAM_TV_PATH;
+          }
+        });
+      }
+
+      // Event listeners for buttons
+      document.getElementById('start-btn').addEventListener('click', function() {
+        showToast('Starting service...', 'info');
+        API.startService().then(data => {
+          if (data.success) {
+            showToast('Service started successfully', 'success');
+            updateStatusUI('active');
+          } else {
+            showToast('Failed to start service', 'error');
+          }
+        });
+      });
+
+      document.getElementById('stop-btn').addEventListener('click', function() {
+        showToast('Stopping service...', 'info');
+        API.stopService().then(data => {
+          if (data.success) {
+            showToast('Service stopped successfully', 'success');
+            updateStatusUI('inactive');
+          } else {
+            showToast('Failed to stop service', 'error');
+          }
+        });
+      });
+
+      document.getElementById('restart-btn').addEventListener('click', function() {
+        showToast('Restarting service...', 'info');
+        API.restartService().then(data => {
+          if (data.success) {
+            showToast('Service restarted successfully', 'success');
+            updateStatusUI('active');
+          } else {
+            showToast('Failed to restart service', 'error');
+          }
+        });
+      });
+
+      document.getElementById('diagnostics-btn').addEventListener('click', function() {
+        showToast('Running diagnostics...', 'info');
+        API.runDiagnostics().then(data => {
+          if (data.success) {
+            showToast('Diagnostics completed', 'success');
+            // Display diagnostics results
+            const logsContent = document.getElementById('logs-content');
+            const diagnosticsInfo = [
+              `System: ${data.data.systemInfo || 'Not available'}`,
+              `Disk Space: ${data.data.diskSpace || 'Not available'}`,
+              `SMB Version: ${data.data.smbVersion || 'Not available'}`,
+              `FFmpeg Version: ${data.data.ffmpegVersion || 'Not available'}`,
+              `MediaInfo Version: ${data.data.mediainfoVersion || 'Not available'}`,
+              `MKVMerge Version: ${data.data.mkvmergeVersion || 'Not available'}`
+            ].join('\n\n');
+            
+            logsContent.textContent = diagnosticsInfo;
+            
+            // Switch to logs tab
+            document.getElementById('logs-tab').click();
+          } else {
+            showToast('Failed to run diagnostics', 'error');
+          }
+        });
+      });
+
+      // Test SMB Connection
+      document.getElementById('test-connection-btn').addEventListener('click', function() {
+        const server = document.getElementById('smb-server').value;
+        const share = document.getElementById('smb-share').value;
+        const user = document.getElementById('smb-username').value;
+        const password = document.getElementById('smb-password').value;
+        
+        if (!server || !share) {
+          showToast('Server and share are required', 'error');
+          return;
+        }
+        
+        showToast('Testing SMB connection...', 'info');
+        
+        API.testConnection(server, share, user, password).then(data => {
+          if (data.success) {
+            showToast('SMB connection successful!', 'success');
+          } else {
+            showToast(`SMB connection failed: ${data.error}`, 'error');
+          }
+        });
+      });
+
+      // Diagnose SMB Issues
+      document.getElementById('diagnose-smb-btn').addEventListener('click', function() {
+        showToast('Diagnosing SMB connection issues...', 'info');
+        
+        const resultsContainer = document.getElementById('smb-diagnostic-results');
+        const testResults = document.getElementById('smb-test-results');
+        
+        resultsContainer.style.display = 'block';
+        testResults.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Running diagnostics...</div>';
+        
+        API.diagnoseSMB().then(data => {
+          if (data.success) {
+            let html = `
+              <div class="mb-3">
+                <strong>Server:</strong> ${data.settings.server}<br>
+                <strong>Share:</strong> ${data.settings.share}<br>
+                <strong>User:</strong> ${data.settings.user}<br>
+              </div>
+            `;
+            
+            data.tests.forEach(test => {
+              html += `
+                <div class="test-result ${test.success ? 'test-success' : 'test-failure'}">
+                  <strong>${test.test}:</strong> ${test.message}
+                  ${test.output ? `<pre class="mt-2 mb-0 small">${test.output}</pre>` : ''}
+                </div>
+              `;
+            });
+            
+            testResults.innerHTML = html;
+            showToast('SMB diagnostics completed', 'success');
+          } else {
+            testResults.innerHTML = `<div class="alert alert-danger">Diagnostics failed: ${data.error}</div>`;
+            showToast('Failed to run SMB diagnostics', 'error');
+          }
+        });
+      });
+
+      // Refresh logs button
+      document.getElementById('refresh-logs-btn').addEventListener('click', loadLogs);
+
+      // Form submissions
+      document.getElementById('smb-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const settings = {
+          SMB_SERVER: document.getElementById('smb-server').value,
+          SMB_SHARE: document.getElementById('smb-share').value,
+          SMB_USER: document.getElementById('smb-username').value,
+          SMB_PASSWORD: document.getElementById('smb-password').value
+        };
+        
+        showToast('Saving SMB settings...', 'info');
+        API.saveSettings(settings).then(data => {
+          if (data.success) {
+            showToast('SMB settings saved successfully', 'success');
+          } else {
+            showToast('Failed to save SMB settings', 'error');
+          }
+        });
+      });
+
+      document.getElementById('paths-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const settings = {
+          ENGLISH_MOVIE_PATH: document.getElementById('english-movies-path').value,
+          ENGLISH_TV_PATH: document.getElementById('english-tv-path').value,
+          MALAYALAM_MOVIE_PATH: document.getElementById('malayalam-movies-path').value,
+          MALAYALAM_TV_PATH: document.getElementById('malayalam-tv-path').value
+        };
+        
+        showToast('Saving media paths...', 'info');
+        API.saveSettings(settings).then(data => {
+          if (data.success) {
+            showToast('Media paths saved successfully', 'success');
+          } else {
+            showToast('Failed to save media paths', 'error');
+          }
+        });
+      });
+
+      // Initialize
+      loadSettings();
+      loadLogs();
     });
   </script>
 </body>
 </html>
-
