@@ -79,7 +79,7 @@ clean_filename() {
     local original_extension="${filename##*.}"
     # Ensure we handle cases with no extension or multiple dots correctly
     local name_part="${filename}"
-    if [[ "$filename" == *.* ]]; then
+    if [ "${filename##*.}" != "$filename" ]; then
       name_part="${filename%.*}"
     fi
 
@@ -102,7 +102,7 @@ clean_filename() {
     cleaned=$(echo "$cleaned" | sed -E 's/\s+/ /g' | sed -E 's/^\s+|\s+$//g')
 
     # 5. Re-attach the original extension (if one existed)
-    if [[ "$filename" == *.* ]]; then
+    if [ "${filename##*.}" != "$filename" ]; then
       echo "${cleaned}.${original_extension}"
     else
       echo "${cleaned}" # No original extension
@@ -650,6 +650,10 @@ detect_language() {
         elif [[ "$filename_lower" =~ (tamilmv|tamil|southindian) ]]; then
             debug_log "Detect Language: Potential South Indian filename, assuming malayalam"
             detected_language="malayalam"
+        # Default to English if no specific language identified
+        else
+            detected_language="english"
+            debug_log "Detect Language: No specific language identified, defaulting to English"
         fi
     fi
 

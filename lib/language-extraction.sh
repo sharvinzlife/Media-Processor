@@ -33,9 +33,32 @@ EXTRACT_AUDIO_TRACKS=${EXTRACT_AUDIO_TRACKS:-true} # Default if not set
 # Clean language tags from filename - DECLARE EARLY
 clean_language_tags() {
     local filename="$1"
-    echo "$filename" | sed -E 's/\[(mal|malayalam|tamil|telugu|hindi|kannada)\]//gi' | \
+    local original="$filename"  # Keep original for reference
+    local cleaned=$(echo "$filename" | sed -E 's/\[(mal|malayalam|tamil|telugu|hindi|kannada)\]//gi' | \
                        sed -E 's/\((mal|malayalam|tamil|telugu|hindi|kannada)\)//gi' | \
-                       sed -E 's/-+(mal|malayalam|tamil|telugu|hindi|kannada)//gi'
+                       sed -E 's/-+(mal|malayalam|tamil|telugu|hindi|kannada)//gi')
+    
+    # Fix truncation issues with common show names - add more as needed
+    # More comprehensive check for White Lotus variations
+    if [[ "$cleaned" =~ [Ww]hite[[:space:]]*[Ll]otu ]]; then
+        cleaned=$(echo "$cleaned" | sed -E 's/([Ww]hite[[:space:]]*[Ll])otu([^s]|$)/\1otus\2/g')
+        log_lib "Fixed truncated show name: White Lotu → White Lotus"
+    fi
+    
+    # Also fix other common truncation issues
+    if [[ "$cleaned" =~ Arrival[[:space:]] && "$original" =~ Arrivals ]]; then
+        cleaned=$(echo "$cleaned" | sed -E 's/Arrival([[:space:]])/Arrivals\1/g')
+        log_lib "Fixed truncated word: Arrival → Arrivals"
+    fi
+    
+    # General truncation detection - compare string length drops 
+    if [[ ${#original} -gt $((${#cleaned} + 15)) ]]; then
+        log_lib "Warning: Significant truncation detected (${#original} → ${#cleaned} chars)"
+        log_lib "Original: $original"
+        log_lib "Cleaned: $cleaned"
+    fi
+    
+    echo "$cleaned"
 }
 
 # Extract language tracks using mediainfo - DECLARE EARLY
