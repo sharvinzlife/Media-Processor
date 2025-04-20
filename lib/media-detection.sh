@@ -416,19 +416,19 @@ detect_codec() {
     
     # Try to find codec in filename first
     local basename=$(basename "$input_file")
-    if [[ "$basename" =~ [. ]HEVC[. ] || "$basename" =~ [. ]HEVC$ || "$basename" =~ [. ]x265[. ] || "$basename" =~ [. ]x265$ ]]; then
+    if [[ "$basename" =~ [[:punct:]]HEVC[[:punct:]] || "$basename" =~ [[:punct:]]HEVC$ || "$basename" =~ [[:punct:]]x265[[:punct:]] || "$basename" =~ [[:punct:]]x265$ ]]; then
         debug_log "Codec detected from filename: HEVC"
         echo "HEVC"
         return 0
-    elif [[ "$basename" =~ [. ]H264[. ] || "$basename" =~ [. ]H264$ || "$basename" =~ [. ]x264[. ] || "$basename" =~ [. ]x264$ ]]; then
+    elif [[ "$basename" =~ [[:punct:]]H264[[:punct:]] || "$basename" =~ [[:punct:]]H264$ || "$basename" =~ [[:punct:]]x264[[:punct:]] || "$basename" =~ [[:punct:]]x264$ ]]; then
         debug_log "Codec detected from filename: H264"
         echo "H264"
         return 0
-    elif [[ "$basename" =~ [. ]AV1[. ] || "$basename" =~ [. ]AV1$ ]]; then
+    elif [[ "$basename" =~ [[:punct:]]AV1[[:punct:]] || "$basename" =~ [[:punct:]]AV1$ ]]; then
         debug_log "Codec detected from filename: AV1"
         echo "AV1"
         return 0
-    elif [[ "$basename" =~ [. ]VP9[. ] || "$basename" =~ [. ]VP9$ ]]; then
+    elif [[ "$basename" =~ [[:punct:]]VP9[[:punct:]] || "$basename" =~ [[:punct:]]VP9$ ]]; then
         debug_log "Codec detected from filename: VP9"
         echo "VP9"
         return 0
@@ -481,7 +481,7 @@ detect_subtitles() {
     
     # Try to find subtitle info in filename first
     local basename=$(basename "$input_file")
-    if [[ "$basename" =~ [. ]SUB[S]?-([A-Za-z,]+)[. ] || "$basename" =~ [. ]SUB[S]?-([A-Za-z,]+)$ ]]; then
+    if [[ "$basename" =~ [[:punct:]]SUB[S]?-([A-Za-z,]+)[[:punct:]] || "$basename" =~ [[:punct:]]SUB[S]?-([A-Za-z,]+)$ ]]; then
         local subtitle_info="${BASH_REMATCH[1]}"
         debug_log "Subtitle info detected from filename: $subtitle_info"
         echo "$subtitle_info"
@@ -534,7 +534,7 @@ detect_audio_languages() {
     
     # Try to find audio language info in filename first
     local basename=$(basename "$input_file")
-    if [[ "$basename" =~ [.\ ](DUAL|MULTI)[.\ ] || "$basename" =~ [.\ ](DUAL|MULTI)$ ]]; then
+    if [[ "$basename" =~ [[:punct:]](DUAL|MULTI)[[:punct:]] || "$basename" =~ [[:punct:]](DUAL|MULTI)$ ]]; then
         debug_log "Audio language detected from filename: Multiple audio tracks"
         echo "MULTI"
         return 0
