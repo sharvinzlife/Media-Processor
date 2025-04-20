@@ -154,6 +154,26 @@ extract_resolution() {
     local file="$1"
     local resolution=""
     
+    # First check if filename contains resolution indicators
+    local filename=$(basename "$file")
+    if [[ "$filename" =~ 1080[pP] ]]; then
+        resolution="1080p"
+        return 0
+    elif [[ "$filename" =~ 720[pP] ]]; then
+        resolution="720p"
+        return 0
+    elif [[ "$filename" =~ 2160[pP] || "$filename" =~ 4[kK] ]]; then
+        resolution="4K"
+        return 0
+    elif [[ "$filename" =~ 1440[pP] || "$filename" =~ 2[kK] ]]; then
+        resolution="2K"
+        return 0
+    elif [[ "$filename" =~ 480[pP] ]]; then
+        resolution="480p"
+        return 0
+    fi
+    
+    # If no resolution found in filename, check file metadata
     if command -v mediainfo >/dev/null 2>&1; then
         local width=$(mediainfo --Output="Video;%Width%" "$file" 2>/dev/null | head -n1)
         local height=$(mediainfo --Output="Video;%Height%" "$file" 2>/dev/null | head -n1)
