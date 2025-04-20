@@ -58,60 +58,60 @@ log() {
 # Check required tools
 check_required_tools() {
     local missing_tools=()
-
+    
     # Check for smbclient
     if ! command -v smbclient &> /dev/null; then
         missing_tools+=("smbclient")
     fi
-
+    
     # Check for mediainfo
     if ! command -v mediainfo &> /dev/null; then
         missing_tools+=("mediainfo")
     fi
-
+    
     # Check for ffmpeg
     if ! command -v ffmpeg &> /dev/null; then
         missing_tools+=("ffmpeg")
     fi
-
+    
     # Check for mkvmerge and mkvextract
     if ! command -v mkvmerge &> /dev/null; then
         missing_tools+=("mkvmerge")
     fi
-
+    
     if ! command -v mkvextract &> /dev/null; then
         missing_tools+=("mkvextract")
     fi
-
+    
     if [ ${#missing_tools[@]} -gt 0 ]; then
         log "ERROR: Missing required tools: ${missing_tools[*]}"
         log "Please install them with: sudo apt-get install ${missing_tools[*]}"
         return 1
     fi
-
+    
     return 0
 }
 
 # Function to clean filenames
 clean_filename() {
     local filename="$1"
-
+    
     # Remove common prefixes and references
     local cleaned=$(echo "$filename" | sed -E 's/^www\.[0-9]*TamilMV\.[a-zA-Z]{2,3}\s*-\s*//i')
     cleaned=$(echo "$cleaned" | sed -E 's/^TamilMV\s*-\s*//i')
-
+    
     # Remove Sanet.st prefixes - making these patterns more specific
     cleaned=$(echo "$cleaned" | sed -E 's/^Sanet\.st\.//i')
     cleaned=$(echo "$cleaned" | sed -E 's/^Sanet\.st\s*-\s*//i')
     cleaned=$(echo "$cleaned" | sed -E 's/^Sanet\s*-\s*//i')
-
+    
     # Remove Softarchive.is prefixes
     cleaned=$(echo "$cleaned" | sed -E 's/^Softarchive\.is\.//i')
     cleaned=$(echo "$cleaned" | sed -E 's/^Softarchive\.is\s*-\s*//i')
-
+    
     # Replace underscores with spaces
     cleaned=$(echo "$cleaned" | sed 's/_/ /g')
-
+    
     # Remove curly braces and their content (including any timestamps, dates, or MediaIn)
     cleaned=$(echo "$cleaned" | sed -E 's/\{[^}]*\}//g')
     # Remove any leftover date/time patterns (e.g. Wed Apr 16 ...)
@@ -120,7 +120,7 @@ clean_filename() {
     cleaned=$(echo "$cleaned" | sed -E 's/MediaIn//g')
     # Remove square brackets with non-standard tags (keep [1080p], [720p], etc.)
     cleaned=$(echo "$cleaned" | sed -E 's/\[[^0-9][^\]]*\]//g')
-
+    
     # Remove repeated extensions (e.g., .mkv.mkv)
     cleaned=$(echo "$cleaned" | sed -E 's/(\.[a-zA-Z0-9]{2,5})+(\.[a-zA-Z0-9]{2,5})$/\2/')
     # Remove duplicate tags and repeated words
@@ -138,14 +138,14 @@ clean_filename() {
     else
         cleaned="${cleaned:0:100}"
     fi
-
+    
     echo "$cleaned"
 }
 
 # Function to determine if a file is a TV show or movie
 identify_media_type() {
     local filename="$1"
-
+    
     # Check for TV show patterns
     if echo "$filename" | grep -E 'S[0-9]{2}E[0-9]{2}|Season\s?[0-9]{1,2}\s?Episode\s?[0-9]{1,2}|[0-9]{1,2}x[0-9]{1,2}|Ep\s?[0-9]{1,2}' -i > /dev/null; then
         echo "tvshow"
@@ -158,13 +158,13 @@ identify_media_type() {
 identify_language() {
     local file="$1"
     local detected_language="unknown"
-
+    
     if [ ! -f "$file" ]; then
         log "Identify Language: File not found '$file'"
         echo "$detected_language"
         return 1
     fi
-
+    
     log "Identify Language: Checking '$file'"
 
     # Check content first (more reliable)
@@ -223,235 +223,58 @@ clean_language_tags() {
 
 # Function to extract resolution from media file
 extract_resolution() {
+    # This function is now replaced by detect_resolution in media-detection.sh
     local file="$1"
-    local resolution=""
-
-    if command -v mediainfo >/dev/null 2>&1; then
-        local width=$(mediainfo --Output="Video;%Width%" "$file" | head -n1)
-        local height=$(mediainfo --Output="Video;%Height%" "$file" | head -n1)
-
-        if [ -n "$width" ] && [ -n "$height" ]; then
-            # Determine standard resolution name
-            if [ "$height" -ge 2160 ]; then
-                resolution="4K"
-            elif [ "$height" -ge 1440 ]; then
-                resolution="2K"
-            elif [ "$height" -ge 1080 ]; then
-                resolution="1080p"
-            elif [ "$height" -ge 720 ]; then
-                resolution="720p"
-            elif [ "$height" -ge 480 ]; then
-                resolution="480p"
-            else
-                resolution="${width}x${height}"
-            fi
-        fi
-    elif command -v ffprobe >/dev/null 2>&1; then
-        local video_info=$(ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=s=x:p=0 "$file")
-
-        if [ -n "$video_info" ]; then
-            local width=$(echo "$video_info" | cut -d'x' -f1)
-            local height=$(echo "$video_info" | cut -d'x' -f2)
-
-            # Determine standard resolution name
-            if [ "$height" -ge 2160 ]; then
-                resolution="4K"
-            elif [ "$height" -ge 1440 ]; then
-                resolution="2K"
-            elif [ "$height" -ge 1080 ]; then
-                resolution="1080p"
-            elif [ "$height" -ge 720 ]; then
-                resolution="720p"
-            elif [ "$height" -ge 480 ]; then
-                resolution="480p"
-            else
-                resolution="$video_info"
-            fi
-        fi
-    fi
-
-    echo "$resolution"
+    detect_resolution "$file"
 }
 
 # Function to extract codec information
 extract_codec() {
+    # This function is now replaced by detect_codec in media-detection.sh
     local file="$1"
-    local codec=""
-
-    if command -v mediainfo >/dev/null 2>&1; then
-        codec=$(mediainfo --Output="Video;%Format%" "$file" | head -n1)
-
-        # Simplify codec names
-        case "$codec" in
-            "AVC"|"H.264"|"H264"|"MPEG-4 AVC")
-                codec="H.264"
-                ;;
-            "HEVC"|"H.265"|"H265"|"MPEG-H HEVC")
-                codec="H.265"
-                ;;
-            *)
-                # Keep as is for other codecs
-                ;;
-        esac
-    elif command -v ffprobe >/dev/null 2>&1; then
-        codec=$(ffprobe -v error -select_streams v:0 -show_entries stream=codec_name -of default=noprint_wrappers=1:nokey=1 "$file")
-
-        # Simplify codec names
-        case "$codec" in
-            "h264"|"libx264"|"avc")
-                codec="H.264"
-                ;;
-            "h265"|"libx265"|"hevc")
-                codec="H.265"
-                ;;
-            *)
-                # Keep as is for other codecs
-                ;;
-        esac
-    fi
-
-    echo "$codec"
+    detect_codec "$file"
 }
 
 # Function to get formatted file size
 get_formatted_size() {
+    # This function is now replaced by get_file_size_formatted in media-detection.sh
     local file="$1"
-    local size=$(du -sh "$file" 2>/dev/null | cut -f1)
-    echo "$size"
+    get_file_size_formatted "$file"
 }
 
-# Function to check for subtitle availability
+# Function to check if a file has subtitles
 check_subtitles() {
+    # This function is now replaced by detect_subtitles in media-detection.sh
     local file="$1"
-    local has_subtitles=false
-
-    if command -v mediainfo >/dev/null 2>&1; then
-        local sub_count=$(mediainfo --Output="Text;%StreamCount%" "$file" | wc -l)
-        if [ "$sub_count" -gt 0 ]; then
-            has_subtitles=true
-        fi
-    elif command -v ffprobe >/dev/null 2>&1; then
-        local sub_count=$(ffprobe -v error -select_streams s -show_entries stream=index -of default=noprint_wrappers=1:nokey=1 "$file" | wc -l)
-        if [ "$sub_count" -gt 0 ]; then
-            has_subtitles=true
-        fi
+    local subtitle_info=$(detect_subtitles "$file")
+    if [[ "$subtitle_info" != "none" ]]; then
+        echo "true"
+    else
+        echo "false"
     fi
-
-    echo "$has_subtitles"
 }
 
-# Function to get language codes for subtitles
+# Function to get subtitle languages from a file
 get_subtitle_languages() {
+    # This function is now replaced by detect_subtitles in media-detection.sh
     local file="$1"
-    local sub_langs=""
-
-    if command -v mediainfo >/dev/null 2>&1; then
-        sub_langs=$(mediainfo --Output="Text;%Language/String%" "$file" | sort -u | tr '\n' ',' | sed 's/,$//' | sed 's/,/, /g')
-    elif command -v ffprobe >/dev/null 2>&1; then
-        sub_langs=$(ffprobe -v error -select_streams s -show_entries stream_tags=language -of compact=p=0:nk=1 "$file" | sort -u | tr '\n' ',' | sed 's/,$//' | sed 's/,/, /g')
-    fi
-
-    # Default to eng if empty or contains unknown/und
-    if [[ -z "$sub_langs" || "$sub_langs" == "Unknown" || "$sub_langs" == "und" ]]; then
-        sub_langs="eng"
-    fi
-
-    echo "$sub_langs"
+    detect_subtitles "$file"
 }
 
-# Extract season and episode information from filename
-extract_season_episode() {
-    local filename="$1"
-    local season_ep=""
-
-    # Try to match S01E01 format
-    if [[ $filename =~ S([0-9]+)[ ._-]*E([0-9]+) ]]; then
-        local season="${BASH_REMATCH[1]}"
-        local episode="${BASH_REMATCH[2]}"
-        season_ep=$(printf "S%02dE%02d" "$((10#$season))" "$((10#$episode))") # Force base 10
-    # Try alternative formats like 1x01
-    elif [[ $filename =~ ([0-9]+)[xX]([0-9]+) ]]; then
-        local season="${BASH_REMATCH[1]}"
-        local episode="${BASH_REMATCH[2]}"
-        # Reformat to standard S01E01 format
-        season_ep=$(printf "S%02dE%02d" "$((10#$season))" "$((10#$episode))")
-    # Try to extract from filenames with just 101, 102 etc. (if clearly delimited)
-    elif [[ $filename =~ [ ._-]([0-9])([0-9]{2})[ ._-] ]]; then
-        local season="${BASH_REMATCH[1]}"
-        local episode="${BASH_REMATCH[2]}"
-        season_ep=$(printf "S%02dE%02d" "$((10#$season))" "$((10#$episode))")
-    # Try episode only like Ep 01 or Episode 1
-    elif [[ $filename =~ [Ee][Pp][ ._-]*([0-9]+) ]]; then
-        local episode="${BASH_REMATCH[1]}"
-        # Assume Season 1 if only episode is found
-        season_ep=$(printf "S01E%02d" "$((10#$episode))")
-    fi
-
-    echo "$season_ep"
-}
-
-# Function to format the final media filename
+# Function to format final filename
 format_final_filename() {
-    local cleaned_title="$1" # Title already cleaned of language tags etc.
+    # This function is no longer needed as we use format_filename from media-detection.sh
+    local title="$1"
     local media_type="$2"
     local language="$3"
     local has_subtitles="$4"
     local subtitle_langs="$5"
-    local video_quality="$6"
+    local quality_tag="$6"
     local file_size="$7"
-    local extension="${8:-mkv}" # Expecting extension
-
-    local final_name=""
-    local season_episode=""
-
-    if [ "$media_type" = "tvshow" ]; then
-        local series_name=$(extract_series_name "$cleaned_title")
-        season_episode=$(extract_season_episode "$cleaned_title") # Use cleaned title
-        if [ -n "$season_episode" ]; then
-            final_name="$series_name $season_episode"
-        else
-            final_name="$series_name"
-             log "WARNING: Could not extract SxxExx from TV Show: $cleaned_title"
-        fi
-    else # Movie
-        local movie_title=$(get_folder_name "$cleaned_title") # Use get_folder_name logic
-        local year=$(echo "$cleaned_title" | grep -oE '\b(19[0-9]{2}|20[0-9]{2})\b' | tail -n1)
-        final_name="$movie_title"
-        if [ -n "$year" ]; then
-            final_name="$final_name ($year)"
-        fi
-    fi
-
-    # Add quality tag if available
-    if [ -n "$video_quality" ]; then
-        final_name="$final_name [$video_quality]"
-    fi
-
-    # Add language tag if not English
-    if [ "$language" != "english" ] && [ -n "$language" ] && [ "$language" != "unknown" ]; then
-         final_name="$final_name {$language}"
-    fi
-
-    # Add subtitle info if available
-    if [ "$has_subtitles" = true ]; then
-        final_name="$final_name (SUB: ${subtitle_langs:-eng})"
-    fi
-
-    # Add file size if available
-    # if [ -n "$file_size" ]; then
-    #     final_name="$final_name [$file_size]"
-    # fi
-
-    # Add extension back
-    final_name="${final_name}.${extension}"
-
-    # Final cleanup for SMB compatibility
-    final_name=$(echo "$final_name" | tr ':*/?"<>|\\' '--------' | sed 's/ -- / - /g' | sed 's/  */ /g' | sed 's/^ *//;s/ *$//')
-
-    # Optional: Truncate if too long (consider SMB limits)
-    # final_name=${final_name:0:200} # Example limit
-
-    echo "$final_name"
+    local extension="$8"
+    
+    # Ensure we have the original basename before any additional processing
+    echo "$title.$extension"
 }
 
 # Main processing function for a media file
@@ -465,8 +288,11 @@ process_media_file() {
     local base_filename=$(clean_filename "$filename")
     log "Cleaned base filename: $base_filename"
 
+    # Load media detection library
+    source "$LIB_DIR/media-detection.sh"
+
     # Identify language (capture only stdout from function)
-    local language=$(identify_language "$file")
+    local language=$(detect_language "$file")
     # Log the result AFTER capture (internal function logs steps to stderr)
     log "Language identified by function: $language"
 
@@ -574,18 +400,37 @@ process_media_file() {
         log "Reconstructed target directory: $target_dir"
     fi
 
-    # Gather metadata from the file we are actually processing
-    local video_quality=$(extract_resolution "$file_to_process") # Use specific func
-    local codec=$(extract_codec "$file_to_process")             # Use specific func
-    local quality_tag="${video_quality}${codec:+ $codec}"      # Combine quality/codec
-    local has_subtitles=$(check_subtitles "$file_to_process")
-    local subtitle_langs=$(get_subtitle_languages "$file_to_process") # Get specific langs
-    local file_size=$(get_formatted_size "$file_to_process")
+    # Format the filename with rich media info using our new function
+    local formatted_name=$(format_filename "$file_to_process")
+    log "Formatted filename with media info: $formatted_name"
+    
+    # Get the extension from original file
     local extension="${file_to_process##*.}"
-
-    # Format the final filename
-    local final_filename=$(format_final_filename "$cleaned_title" "$media_type" "$language" "$has_subtitles" "$subtitle_langs" "$quality_tag" "$file_size" "$extension")
-    log "Formatted final filename: $final_filename"
+    
+    # Determine final filename based on media type
+    local final_filename=""
+    if [ "$media_type" = "tvshow" ]; then
+        # For TV shows, we might need to keep the episode information intact
+        # Extract episode info from the original cleaned title
+        local episode_info=$(echo "$cleaned_title" | grep -oE 'S[0-9]{2}E[0-9]{2}|Season\s?[0-9]{1,2}\s?Episode\s?[0-9]{1,2}|[0-9]{1,2}x[0-9]{1,2}|Ep\s?[0-9]{1,2}' -i)
+        if [ -n "$episode_info" ]; then
+            # Use formatted name but ensure episode info is preserved
+            final_filename="$formatted_name"
+        else
+            # Fallback: Use the original formatted name
+            final_filename="$formatted_name"
+        fi
+    else
+        # For movies, use the formatted name directly
+        final_filename="$formatted_name"
+    fi
+    
+    # Ensure the extension is present
+    if [[ ! "$final_filename" =~ \.$extension$ ]]; then
+        final_filename="${final_filename}.$extension"
+    fi
+    
+    log "Final filename: $final_filename"
     # --- End Metadata and Renaming --- #
 
     # --- File Transfer --- #
@@ -638,14 +483,14 @@ process_media_file() {
 process_media_directory() {
     local dir="$1"
     local dirname=$(basename "$dir")
-
+    
     # Skip if not a directory or is the main source directory itself
     if [ ! -d "$dir" ] || [ "$dir" == "$SOURCE_DIR" ]; then
         return
     fi
-
+    
     log "Processing directory: $dirname"
-
+    
     local all_files_processed=true
 
     # Find media files inside the directory (process them directly)
@@ -653,7 +498,7 @@ process_media_directory() {
         if is_download_complete "$mediafile"; then
              # Make sure LANGUAGE_EXTRACTION_SCRIPT is executable
              chmod +x "$LANGUAGE_EXTRACTION_SCRIPT"
-             process_media_file "$mediafile"
+        process_media_file "$mediafile"
              if [ $? -ne 0 ]; then
                  all_files_processed=false
              fi
@@ -669,7 +514,7 @@ process_media_directory() {
             log "DRY RUN: Would remove empty processed directory: $dir"
         else
             log "Removing empty processed directory: $dir"
-            rmdir "$dir"
+        rmdir "$dir"
         fi
     elif [ -z "$(ls -A "$dir" 2>/dev/null)" ]; then
          log "Directory is empty but not removing (CLEAN_ORIGINAL_FILES=$CLEAN_ORIGINAL_FILES or all_files_processed=$all_files_processed): $dir"
@@ -682,9 +527,9 @@ cleanup_rar_files() {
         # log "RAR cleanup disabled, skipping"
         return
     fi
-
+    
     log "Starting cleanup of leftover RAR files"
-
+    
     # Find RAR files (check depth 1 and 2)
     find "$SOURCE_DIR" -maxdepth 2 -type f \( -name "*.rar" -o -name "*.r[0-9][0-9]" -o -name "*.part[0-9]*.rar" \) | sort | while IFS= read -r rar_file; do
         local dir=$(dirname "$rar_file")
@@ -693,17 +538,17 @@ cleanup_rar_files() {
         # If it contains other files (like extracted media not yet processed, or other RAR parts), don't delete
         if [ -z "$(find "$dir" -maxdepth 1 -type f -not -name '.*' -not -name "$(basename "$rar_file")" -print -quit)" ]; then
              # Directory is empty except possibly for this RAR file (or other hidden files)
-             if [ "$DRY_RUN" = true ]; then
+            if [ "$DRY_RUN" = true ]; then
                  log "DRY RUN: Would remove RAR file in likely empty directory: $rar_file"
-             else
+            else
                  log "Removing RAR file in likely empty directory: $rar_file"
                  rm -f "$rar_file"
-             fi
+            fi
         else
             log "Skipping RAR file (directory not empty): $rar_file"
         fi
     done
-
+    
     log "RAR file cleanup completed"
 }
 
@@ -713,9 +558,9 @@ cleanup_empty_dirs() {
         # log "Empty directory cleanup disabled, skipping"
         return
     fi
-
+    
     log "Starting cleanup of empty directories"
-
+    
     # Find all directories, excluding the source, sort reverse depth
     find "$SOURCE_DIR" -mindepth 1 -type d -not -path "*/\.*" | sort -r | while IFS= read -r dir; do
         # Check if directory is empty (ignoring hidden files)
@@ -732,14 +577,14 @@ cleanup_empty_dirs() {
              # Consider removing if desired
         fi
     done
-
+    
     log "Empty directory cleanup completed"
 }
 
 # Main processing loop
 main() {
     log "Starting media monitoring for $SOURCE_DIR"
-
+    
     if [ "$DRY_RUN" = true ]; then
         log "Operating mode: DRY RUN - no files will be copied or deleted"
     else
@@ -754,29 +599,29 @@ main() {
         log "ERROR: Language extraction script not found at $LANGUAGE_EXTRACTION_SCRIPT"
         exit 1
     fi
-
+    
     # Check required tools first
     check_required_tools
     if [ $? -ne 0 ]; then
         log "ERROR: Required tools are missing. Exiting."
         exit 1
     fi
-
+    
     # Main loop
     while true; do
         log "Scanning $SOURCE_DIR for new media files..."
 
         # Test SMB connection at the start of each scan cycle
-        SMB_CONNECTED=false
-        check_smb_connection
-        if [ $? -eq 0 ]; then
-            SMB_CONNECTED=true
+    SMB_CONNECTED=false
+            check_smb_connection
+            if [ $? -eq 0 ]; then
+                SMB_CONNECTED=true
             # Verify directories only if connected
             verify_root_media_dir && \
             verify_smb_path "$MALAYALAM_MOVIE_PATH" && \
             verify_smb_path "$MALAYALAM_TV_PATH" && \
             verify_smb_path "$ENGLISH_MOVIE_PATH" && \
-            verify_smb_path "$ENGLISH_TV_PATH"
+                verify_smb_path "$ENGLISH_TV_PATH"
             if [ $? -ne 0 ]; then
                  log "WARNING: Failed to verify/create SMB directory structure. Transfers might fail."
             fi
@@ -800,13 +645,13 @@ main() {
         done
 
         log "Scanning complete."
-
+        
         # Cleanup tasks
         log "Starting cleanup operations"
-        cleanup_rar_files
-        cleanup_empty_dirs
+            cleanup_rar_files
+            cleanup_empty_dirs
         log "Cleanup operations completed"
-
+        
         log "Sleeping for 60 seconds before next scan..."
         sleep 60
     done
