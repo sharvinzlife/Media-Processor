@@ -66,34 +66,43 @@ identify_language() {
     # Look for language indicators in the filename
     if echo "$filename" | grep -E 'malayalam|mal\b|\bm\b' > /dev/null; then
         echo "malayalam"
+        return 0
     elif echo "$filename" | grep -E 'english|eng\b|\be\b' > /dev/null; then
         echo "english"
-    else
-        # Try deeper analysis using mediainfo if this is a file
-        if [ -f "$input" ] && command -v mediainfo >/dev/null 2>&1; then
-            local track_langs=$(mediainfo --Output="Audio;%Language/String%" "$input" 2>/dev/null)
-            if echo "$track_langs" | grep -i "Malayalam" > /dev/null; then
-                echo "malayalam"
-                return 0
-            elif echo "$track_langs" | grep -i "English" > /dev/null; then
-                echo "english"
-                return 0
-            fi
-            
-            # Check track titles for language hints
-            local track_titles=$(mediainfo --Output="Audio;%Title%" "$input" 2>/dev/null)
-            if echo "$track_titles" | grep -i "Malayalam\|Mal" > /dev/null; then
-                echo "malayalam"
-                return 0
-            elif echo "$track_titles" | grep -i "English\|Eng" > /dev/null; then
-                echo "english"
-                return 0
-            fi
+        return 0
+    fi
+    
+    # Try deeper analysis using mediainfo if this is a file
+    if [ -f "$input" ] && command -v mediainfo >/dev/null 2>&1; then
+        local track_langs=$(mediainfo --Output="Audio;%Language/String%" "$input" 2>/dev/null)
+        if echo "$track_langs" | grep -i "Malayalam" > /dev/null; then
+            echo "malayalam"
+            return 0
+        elif echo "$track_langs" | grep -i "English" > /dev/null; then
+            echo "english"
+            return 0
         fi
         
-        # Default if no language detected
-        echo "unknown"
+        # Check track titles for language hints
+        local track_titles=$(mediainfo --Output="Audio;%Title%" "$input" 2>/dev/null)
+        if echo "$track_titles" | grep -i "Malayalam\|Mal" > /dev/null; then
+            echo "malayalam"
+            return 0
+        elif echo "$track_titles" | grep -i "English\|Eng" > /dev/null; then
+            echo "english"
+            return 0
+        fi
+        
+        # If any audio tracks exist but no specific language identified, default to English
+        if [ -n "$track_langs" ]; then
+            log "Audio tracks found but no specific language identified, defaulting to English"
+            echo "english"
+            return 0
+        fi
     fi
+    
+    # Default if no language detected
+    echo "unknown"
 }
 
 # Function to extract language tracks from a media file

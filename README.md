@@ -217,6 +217,7 @@ DEBUG=true ./bin/media-processor.sh
 * ✅ **Input Validation** - Added data cleaning to prevent corruption of configuration values
 * ✅ **Service Status Animations** - Enhanced status display with loading animations during state transitions
 * ✅ **Advanced Error Handling** - Better error detection and reporting throughout the application
+* ✅ **English Content Recognition** - Fixed English language detection to properly categorize content and update statistics
 
 ## 🔍 Language Extraction Process
 

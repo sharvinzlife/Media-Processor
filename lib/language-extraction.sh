@@ -58,6 +58,9 @@ identify_language() {
         if [[ "$audio_langs" =~ (mal|malayalam|ml) ]]; then
             log_lib "Malayalam audio track detected"
             identified_lang="malayalam"
+        elif [[ "$audio_langs" =~ (eng|english) ]]; then
+            log_lib "English audio track detected"
+            identified_lang="english"
         fi
         if [ "$identified_lang" = "unknown" ]; then
             local audio_titles
@@ -65,6 +68,9 @@ identify_language() {
             if [[ "$audio_titles" =~ (mal|malayalam|ml) ]]; then
                 log_lib "Malayalam mentioned in audio track titles"
                 identified_lang="malayalam"
+            elif [[ "$audio_titles" =~ (eng|english) ]]; then
+                log_lib "English mentioned in audio track titles"
+                identified_lang="english"
             fi
         fi
     fi
@@ -75,15 +81,31 @@ identify_language() {
            [[ "$filename_lower" =~ \bm(al)?\b ]]; then
             log_lib "Malayalam detected in filename"
             identified_lang="malayalam"
+        elif [[ "$filename_lower" =~ (eng|english)(\]|\}|\)|\s|\.|,|-|_|$) ]] || \
+             [[ "$filename_lower" =~ (\[|\{|\(|\s|\.|-|_)(eng|english)(\]|\}|\)|\s|\.|,|-|_|$) ]] || \
+             [[ "$filename_lower" =~ \be(ng)?\b ]]; then
+            log_lib "English detected in filename"
+            identified_lang="english"
         fi
     fi
+    
     if [ "$identified_lang" = "unknown" ]; then
         if [[ "$filename_lower" =~ (tamilmv|tamil|southindian) ]]; then
             log_lib "Potential South Indian content detected, assuming malayalam for extraction purposes"
             identified_lang="malayalam"
         fi
     fi
-    if [ "$identified_lang" = "unknown" ]; then
+    if [ "$identified_lang" = "unknown" ] && [ -f "$filename" ]; then
+        # Last resort - if we have audio tracks and none are identified as Malayalam,
+        # assume English for media files with audio
+        local has_audio=$(mediainfo --Output='Audio;%Language/String%\n' "$filename" 2>/dev/null)
+        if [ -n "$has_audio" ]; then
+            log_lib "Audio tracks found but no language identified, assuming english"
+            identified_lang="english"
+        else
+            log_lib "No specific language identified, defaulting to 'unknown'"
+        fi
+    elif [ "$identified_lang" = "unknown" ]; then
         log_lib "No specific language identified, defaulting to 'unknown'"
     fi
     echo "$identified_lang"
