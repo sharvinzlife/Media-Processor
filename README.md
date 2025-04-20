@@ -1,7 +1,7 @@
 # 🎬 Media Processor 🎞️ 🍿
 
 <p align="center">
-  <img src="https://github.com/sharvinzlife/Media-Processor/raw/main/web-app/build/assets/logo.png" alt="Media Processor Logo" width="250">
+  <img src="https://i.imgur.com/XpotFoB.gif" alt="Media Processor Logo" width="250">
 </p>
 
 <h3 align="center">
