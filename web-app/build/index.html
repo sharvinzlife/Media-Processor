@@ -128,24 +128,45 @@
     /* Subtitle typing animation */
     .typing-text {
       font-family: 'Poppins', sans-serif;
-      border-right: 3px solid white;
-      width: 0;
+      position: relative;
       white-space: nowrap;
-      overflow: hidden;
-      animation: typing 4s steps(40) 1s forwards, blink 1s infinite;
       margin: 0 auto;
       display: inline-block;
-      max-width: 80%; /* Reduced to prevent cursor from going too far */
+      max-width: 90%; /* Control width to prevent cursor going too far */
+      animation: slide-in 0.8s ease-out;
+      transform-origin: left;
     }
     
-    @keyframes typing {
-      from { width: 0 }
-      to { width: 100% }
+    .typing-text::after {
+      content: "";
+      position: absolute;
+      right: -5px;
+      top: 0;
+      height: 100%;
+      width: 3px;
+      background-color: white;
+      animation: blink-cursor 0.8s step-end infinite;
     }
     
-    @keyframes blink {
-      0%, 100% { border-color: transparent }
-      50% { border-color: white }
+    @keyframes blink-cursor {
+      from, to { background-color: transparent }
+      50% { background-color: white; }
+    }
+    
+    /* Text animation fade effect */
+    .fade-text {
+      opacity: 1;
+      transition: opacity 0.8s ease-in-out;
+    }
+    
+    .fade-text.fade-out {
+      opacity: 0;
+    }
+    
+    /* Left to right slide animation */
+    @keyframes slide-in {
+      0% { transform: translateX(-20px); opacity: 0; }
+      100% { transform: translateX(0); opacity: 1; }
     }
     
     /* Dark mode specific text styling */
@@ -428,6 +449,294 @@
       color: #e8e6e3;
       border: 1px solid #2d3133;
     }
+    /* Sortable table styles */
+    .sortable {
+      cursor: pointer;
+      position: relative;
+    }
+    
+    .sortable:hover {
+      background-color: rgba(0,0,0,0.05);
+    }
+    
+    [data-theme="dark"] .sortable:hover {
+      background-color: rgba(255,255,255,0.05);
+    }
+    
+    .sortable i.fa-sort {
+      margin-left: 5px;
+      opacity: 0.5;
+      font-size: 0.8em;
+    }
+    
+    .sortable i.fa-sort-up, .sortable i.fa-sort-down {
+      margin-left: 5px;
+      opacity: 1;
+      font-size: 0.8em;
+    }
+    
+    /* Enhanced file history styles */
+    .file-type-emoji {
+      margin-right: 5px;
+    }
+    
+    .language-icon {
+      display: inline-block;
+      width: 24px;
+      height: 24px;
+      text-align: center;
+      border-radius: 50%;
+      margin-right: 5px;
+      color: white;
+      font-weight: bold;
+      line-height: 24px;
+      font-size: 12px;
+    }
+    
+    .language-mal {
+      background-color: #ff4081;
+    }
+    
+    .language-eng {
+      background-color: #3f51b5;
+    }
+    
+    .language-other {
+      background-color: #4caf50;
+    }
+    /* Interactive button styles */
+    .btn {
+      transition: all 0.3s ease;
+    }
+    
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    
+    .btn:active {
+      transform: translateY(1px);
+    }
+    
+    .btn-primary:hover {
+      background-color: #303f9f;
+      border-color: #1a237e;
+    }
+    
+    .btn-success:hover {
+      background-color: #2e7d32;
+      border-color: #1b5e20;
+    }
+    
+    .btn-danger:hover {
+      background-color: #c62828;
+      border-color: #b71c1c;
+    }
+    
+    .btn-warning:hover {
+      background-color: #f57c00;
+      border-color: #ef6c00;
+    }
+    
+    /* Unified toggle button */
+    .toggle-btn {
+      min-width: 100px;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .toggle-btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      transition: all 0.6s ease;
+    }
+    
+    .toggle-btn:hover::before {
+      left: 100%;
+    }
+    /* Locked fields style */
+    .locked-field {
+      background-color: rgba(0, 0, 0, 0.05);
+      cursor: not-allowed;
+      border-color: transparent;
+      color: var(--text-color);
+    }
+    
+    [data-theme="dark"] .locked-field {
+      background-color: rgba(255, 255, 255, 0.05);
+      color: var(--text-color);
+    }
+    
+    /* Edit button styles */
+    .edit-btn {
+      position: absolute;
+      right: 20px;
+      top: 15px;
+      transition: all 0.3s ease;
+      opacity: 0.7;
+      z-index: 5;
+    }
+    
+    .edit-btn:hover {
+      transform: scale(1.1);
+      opacity: 1;
+    }
+    
+    /* Panel with edit mode */
+    .editable-panel {
+      position: relative;
+      transition: all 0.3s ease;
+    }
+    
+    .editable-panel:hover {
+      box-shadow: 0 0 15px rgba(63, 81, 181, 0.15);
+    }
+    
+    [data-theme="dark"] .editable-panel:hover {
+      box-shadow: 0 0 15px rgba(92, 107, 192, 0.25);
+    }
+    
+    .editable-panel.edit-mode {
+      border: 1px solid var(--primary);
+      box-shadow: 0 0 10px rgba(63, 81, 181, 0.2);
+    }
+    
+    [data-theme="dark"] .editable-panel.edit-mode {
+      border: 1px solid var(--primary);
+      box-shadow: 0 0 10px rgba(92, 107, 192, 0.3);
+    }
+    
+    /* Editing actions */
+    .editing-actions {
+      display: none;
+      margin-top: 20px;
+      text-align: right;
+    }
+    
+    .editing-actions.active {
+      display: block;
+      animation: fadeIn 0.3s ease;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    /* Label icon */
+    .form-label .label-icon {
+      margin-right: 5px;
+      opacity: 0.8;
+    }
+    /* Stats cards with hover effects */
+    .stats-card {
+      transition: all 0.3s ease;
+      transform: translateY(0);
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.08);
+    }
+    
+    .stats-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.12);
+    }
+    
+    .stats-card .card-icon {
+      transition: all 0.4s ease;
+    }
+    
+    .stats-card:hover .card-icon {
+      transform: scale(1.2);
+    }
+    
+    .stats-card .stats-count {
+      font-size: 2.2rem;
+      font-weight: 700;
+      transition: all 0.3s ease;
+    }
+    
+    .stats-card:hover .stats-count {
+      color: var(--primary);
+      transform: scale(1.1);
+    }
+    
+    /* File history hover effects */
+    .file-history-container {
+      transition: all 0.3s ease;
+    }
+    
+    .file-history-card {
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .file-history-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 7px 14px rgba(0,0,0,0.1);
+    }
+    
+    .file-history-card:hover::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      width: 3px;
+      background: var(--primary);
+    }
+    
+    .file-history-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.3s ease;
+    }
+    
+    .file-history-title:hover {
+      transform: translateX(5px);
+    }
+    
+    /* Edit button positioning and lock icon */
+    .panel-edit-btn {
+      position: absolute;
+      right: 15px;
+      top: 10px;
+      transition: all 0.3s ease;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      border-radius: 6px;
+      padding: 6px 12px;
+      background-color: var(--primary);
+      color: white;
+      opacity: 0.9;
+    }
+    
+    .panel-edit-btn:hover {
+      opacity: 1;
+      transform: translateY(-2px);
+      box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+    }
+    
+    .panel-edit-btn.editing {
+      background-color: var(--secondary);
+    }
+    
+    .panel-edit-btn .lock-icon {
+      transition: all 0.3s ease;
+    }
+    
+    .edit-mode .panel-edit-btn .lock-icon {
+      transform: rotate(90deg);
+    }
   </style>
 </head>
 <body>
@@ -447,7 +756,7 @@
         </span>
       </h1>
       <div class="subtitle-container">
-        <p><span class="typing-text">Automatically organizes your media files into structured libraries</span></p>
+        <p><span class="typing-text fade-text">🧠 Your Smart Media Shelf, Automatically organize, sort, and shelve your media — your collection, your rules.</span></p>
       </div>
     </div>
   </header>
@@ -455,37 +764,39 @@
   <div class="container mb-5">
     <div class="row mb-4">
       <div class="col-md-3">
-        <div class="card text-center p-4">
-          <div class="fs-1 text-primary mb-2"><i class="fas fa-film"></i></div>
-          <div class="fs-1 fw-bold text-primary" id="english-movies-count">0</div>
+        <div class="card text-center p-4 stats-card">
+          <div class="fs-1 text-primary mb-2 card-icon"><i class="fas fa-film"></i></div>
+          <div class="fs-1 fw-bold text-primary stats-count" id="english-movies-count">0</div>
           <div>English Movies</div>
         </div>
       </div>
       <div class="col-md-3">
-        <div class="card text-center p-4">
-          <div class="fs-1 text-primary mb-2"><i class="fas fa-film"></i></div>
-          <div class="fs-1 fw-bold text-primary" id="malayalam-movies-count">0</div>
+        <div class="card text-center p-4 stats-card">
+          <div class="fs-1 text-primary mb-2 card-icon"><i class="fas fa-film"></i></div>
+          <div class="fs-1 fw-bold text-primary stats-count" id="malayalam-movies-count">0</div>
           <div>Malayalam Movies</div>
         </div>
       </div>
       <div class="col-md-3">
-        <div class="card text-center p-4">
-          <div class="fs-1 text-primary mb-2"><i class="fas fa-tv"></i></div>
-          <div class="fs-1 fw-bold text-primary" id="english-tv-count">0</div>
+        <div class="card text-center p-4 stats-card">
+          <div class="fs-1 text-primary mb-2 card-icon"><i class="fas fa-tv"></i></div>
+          <div class="fs-1 fw-bold text-primary stats-count" id="english-tv-count">0</div>
           <div>English TV Shows</div>
         </div>
       </div>
       <div class="col-md-3">
-        <div class="card text-center p-4">
-          <div class="fs-1 text-primary mb-2"><i class="fas fa-tv"></i></div>
-          <div class="fs-1 fw-bold text-primary" id="malayalam-tv-count">0</div>
+        <div class="card text-center p-4 stats-card">
+          <div class="fs-1 text-primary mb-2 card-icon"><i class="fas fa-tv"></i></div>
+          <div class="fs-1 fw-bold text-primary stats-count" id="malayalam-tv-count">0</div>
           <div>Malayalam TV Shows</div>
         </div>
       </div>
     </div>
     <!-- File History Dashboard -->
-    <div class="card mb-4">
-      <div class="card-header"><b>Processed File History</b></div>
+    <div class="card mb-4 file-history-card">
+      <div class="card-header">
+        <h5 class="file-history-title mb-0"><i class="fas fa-clipboard-list me-2"></i> 📋 Processed File History</h5>
+      </div>
       <div class="card-body p-0">
         <div class="file-history-container">
           <table class="table table-striped mb-0" id="file-history-table">
@@ -493,9 +804,9 @@
               <tr>
                 <th>#</th>
                 <th>File Name</th>
-                <th>Type</th>
-                <th>Language</th>
-                <th>Date & Time</th>
+                <th class="sortable" data-sort="type">Type <i class="fas fa-sort"></i></th>
+                <th class="sortable" data-sort="language">Language <i class="fas fa-sort"></i></th>
+                <th class="sortable" data-sort="date">Date & Time <i class="fas fa-sort"></i></th>
               </tr>
             </thead>
             <tbody id="file-history-body">
@@ -513,10 +824,9 @@
       </div>
       <div class="card-body">
         <div class="d-flex justify-content-center gap-2 mb-4">
-          <button id="start-btn" class="btn btn-success"><i class="fas fa-play me-2"></i>Start</button>
-          <button id="stop-btn" class="btn btn-danger"><i class="fas fa-stop me-2"></i>Stop</button>
-          <button id="restart-btn" class="btn btn-primary"><i class="fas fa-sync-alt me-2"></i>Restart</button>
-          <button id="diagnostics-btn" class="btn btn-warning"><i class="fas fa-stethoscope me-2"></i>Run Diagnostics</button>
+          <button id="toggle-service-btn" class="btn btn-success toggle-btn"><i class="fas fa-play me-2"></i>Start</button>
+          <button id="restart-btn" class="btn btn-primary toggle-btn"><i class="fas fa-sync-alt me-2"></i>Restart</button>
+          <button id="diagnostics-btn" class="btn btn-warning toggle-btn"><i class="fas fa-stethoscope me-2"></i>Run Diagnostics</button>
         </div>
         <div id="activity-log" class="mt-3">
           <h5>Activity</h5>
@@ -545,37 +855,44 @@
       <div class="card-body">
         <div class="tab-content">
           <div class="tab-pane fade show active" id="smb-settings" role="tabpanel">
-            <form id="smb-form">
+            <button type="button" id="edit-smb-btn" class="btn panel-edit-btn">
+              <i class="fas fa-lock lock-icon"></i> Edit
+            </button>
+            <form id="smb-form" class="editable-panel">
               <div class="row">
                 <div class="col-md-6">
                   <div class="mb-3">
-                    <label class="form-label">SMB Server</label>
-                    <input type="text" class="form-control" id="smb-server" value="streamwave.local">
+                    <label class="form-label"><i class="fas fa-server label-icon"></i> SMB Server</label>
+                    <input type="text" class="form-control locked-field" id="smb-server" value="streamwave.local" readonly>
                   </div>
                   <div class="mb-3">
-                    <label class="form-label">SMB Share</label>
-                    <input type="text" class="form-control" id="smb-share" value="Data-Streamwave">
+                    <label class="form-label"><i class="fas fa-share-alt label-icon"></i> SMB Share</label>
+                    <input type="text" class="form-control locked-field" id="smb-share" value="Data-Streamwave" readonly>
                   </div>
                 </div>
                 <div class="col-md-6">
                   <div class="mb-3">
-                    <label class="form-label">Username</label>
-                    <input type="text" class="form-control" id="smb-username" value="sharvinzlife">
+                    <label class="form-label"><i class="fas fa-user label-icon"></i> Username</label>
+                    <input type="text" class="form-control locked-field" id="smb-username" value="sharvinzlife" readonly>
                   </div>
                   <div class="mb-3">
-                    <label class="form-label">Password</label>
-                    <input type="password" class="form-control" id="smb-password" value="Tkrw%S$!H2rAPC6x">
+                    <label class="form-label"><i class="fas fa-key label-icon"></i> Password</label>
+                    <input type="password" class="form-control locked-field" id="smb-password" value="Tkrw%S$!H2rAPC6x" readonly>
                   </div>
                 </div>
               </div>
+              
               <div class="d-flex justify-content-between">
-                <button type="button" id="test-connection-btn" class="btn btn-info">
+                <button type="button" id="test-connection-btn" class="btn btn-info toggle-btn">
                   <i class="fas fa-network-wired me-2"></i>Test Connection
                 </button>
-                <button type="button" id="diagnose-smb-btn" class="btn btn-secondary">
+                <button type="button" id="diagnose-smb-btn" class="btn btn-secondary toggle-btn">
                   <i class="fas fa-search me-2"></i>Diagnose SMB Issues
                 </button>
-                <button type="submit" class="btn btn-primary">Save Settings</button>
+                <div class="editing-actions" id="smb-editing-actions">
+                  <button type="button" id="cancel-smb-btn" class="btn btn-outline-secondary me-2">Cancel</button>
+                  <button type="submit" class="btn btn-success">Save Settings</button>
+                </div>
               </div>
             </form>
             
@@ -597,31 +914,38 @@
             </div>
           </div>
           <div class="tab-pane fade" id="media-paths" role="tabpanel">
-            <form id="paths-form">
+            <button type="button" id="edit-paths-btn" class="btn panel-edit-btn">
+              <i class="fas fa-lock lock-icon"></i> Edit
+            </button>
+            <form id="paths-form" class="editable-panel">
               <div class="row">
                 <div class="col-md-6">
                   <div class="mb-3">
-                    <label class="form-label">English Movies Path</label>
-                    <input type="text" class="form-control" id="english-movies-path" value="media/movies">
+                    <label class="form-label"><i class="fas fa-film label-icon"></i> English Movies Path</label>
+                    <input type="text" class="form-control locked-field" id="english-movies-path" value="media/movies" readonly>
                   </div>
                   <div class="mb-3">
-                    <label class="form-label">English TV Shows Path</label>
-                    <input type="text" class="form-control" id="english-tv-path" value="media/tv-shows">
+                    <label class="form-label"><i class="fas fa-tv label-icon"></i> English TV Shows Path</label>
+                    <input type="text" class="form-control locked-field" id="english-tv-path" value="media/tv-shows" readonly>
                   </div>
                 </div>
                 <div class="col-md-6">
                   <div class="mb-3">
-                    <label class="form-label">Malayalam Movies Path</label>
-                    <input type="text" class="form-control" id="malayalam-movies-path" value="media/malayalam movies">
+                    <label class="form-label"><i class="fas fa-film label-icon"></i> Malayalam Movies Path</label>
+                    <input type="text" class="form-control locked-field" id="malayalam-movies-path" value="media/malayalam movies" readonly>
                   </div>
                   <div class="mb-3">
-                    <label class="form-label">Malayalam TV Shows Path</label>
-                    <input type="text" class="form-control" id="malayalam-tv-path" value="media/malayalam-tv-shows">
+                    <label class="form-label"><i class="fas fa-tv label-icon"></i> Malayalam TV Shows Path</label>
+                    <input type="text" class="form-control locked-field" id="malayalam-tv-path" value="media/malayalam-tv-shows" readonly>
                   </div>
                 </div>
               </div>
+              
               <div class="d-flex justify-content-end">
-                <button type="submit" class="btn btn-primary">Save Paths</button>
+                <div class="editing-actions" id="paths-editing-actions">
+                  <button type="button" id="cancel-paths-btn" class="btn btn-outline-secondary me-2">Cancel</button>
+                  <button type="submit" class="btn btn-success">Save Paths</button>
+                </div>
               </div>
             </form>
           </div>
@@ -642,12 +966,33 @@
   <div class="toast-container"></div>
 
   <script>
-    // Theme toggle functionality
+    // Add the text rotation animation to the beginning of the script section
     document.addEventListener('DOMContentLoaded', function() {
+      // Text rotation animation
+      const typingText = document.querySelector('.typing-text');
+      const phrases = [
+        "🧠 Your Smart Media Shelf, Automatically organize, sort, and shelve your media — your collection, your rules."
+      ];
+      let currentIndex = 0;
+      
+      function rotateText() {
+        typingText.classList.add('fade-out');
+        
+        setTimeout(() => {
+          currentIndex = (currentIndex + 1) % phrases.length;
+          typingText.textContent = phrases[currentIndex];
+          typingText.classList.remove('fade-out');
+        }, 800);
+      }
+      
+      // Single phrase, so no need for rotation
+      typingText.textContent = phrases[0];
+      
+      // Theme toggle functionality
       const themeToggle = document.createElement('div');
       themeToggle.innerHTML = `
-        <div style="position:fixed;top:20px;right:20px;z-index:1000;background:rgba(255,255,255,0.2);padding:10px;border-radius:50px;backdrop-filter:blur(5px);">
-          <button id="theme-toggle" class="btn btn-sm btn-outline-primary">
+        <div style="position:fixed;top:20px;right:20px;z-index:1000;background:rgba(255,255,255,0.3);padding:10px;border-radius:50px;backdrop-filter:blur(5px);box-shadow:0 2px 10px rgba(0,0,0,0.2);border:2px solid rgba(255,255,255,0.5);">
+          <button id="theme-toggle" class="btn btn-sm btn-light">
             <i class="fas fa-moon"></i>
           </button>
         </div>
@@ -672,9 +1017,15 @@
         if (theme === 'dark') {
           document.body.classList.add('dark-mode');
           toggleBtn.innerHTML = '<i class="fas fa-sun"></i>';
+          toggleBtn.className = 'btn btn-sm btn-warning';
+          document.querySelector('#theme-toggle').parentElement.style.background = 'rgba(50,50,80,0.6)';
+          document.querySelector('#theme-toggle').parentElement.style.borderColor = 'rgba(100,100,255,0.5)';
         } else {
           document.body.classList.remove('dark-mode');
           toggleBtn.innerHTML = '<i class="fas fa-moon"></i>';
+          toggleBtn.className = 'btn btn-sm btn-light';
+          document.querySelector('#theme-toggle').parentElement.style.background = 'rgba(255,255,255,0.3)';
+          document.querySelector('#theme-toggle').parentElement.style.borderColor = 'rgba(255,255,255,0.5)';
         }
       }
 
@@ -788,13 +1139,29 @@
           }
         },
         
-        diagnoseSMB: async function() {
+        diagnoseSMB: async function(customSettings) {
           try {
-            const response = await fetch('/api/diagnose-smb');
+            // Use provided settings or current form values
+            const settings = customSettings || {
+              server: cleanSettingsValue(document.getElementById('smb-server').value),
+              share: cleanSettingsValue(document.getElementById('smb-share').value),
+              user: cleanSettingsValue(document.getElementById('smb-username').value),
+              password: cleanSettingsValue(document.getElementById('smb-password').value)
+            };
+            
+            console.log('Diagnosing SMB with settings:', {...settings, password: '***'});
+            
+            const response = await fetch('/api/diagnose-smb', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(settings)
+            });
             return await response.json();
           } catch (error) {
             console.error('Error diagnosing SMB:', error);
-            return { success: false, error: 'Network error' };
+            return { success: false, error: 'Network error: ' + (error.message || 'Could not connect to server') };
           }
         }
       };
@@ -825,16 +1192,64 @@
       function updateStatusUI(status) {
         const statusBadge = document.getElementById('status-badge');
         const activityMessage = document.getElementById('activity-message');
+        const toggleBtn = document.getElementById('toggle-service-btn');
         
         if (status === 'active') {
           statusBadge.className = 'badge bg-success px-3 py-2';
           statusBadge.textContent = 'Running';
           activityMessage.textContent = 'Service is running';
+          
+          // Update button to show Stop
+          toggleBtn.className = 'btn btn-danger toggle-btn';
+          toggleBtn.innerHTML = '<i class="fas fa-stop me-2"></i>Stop';
+          toggleBtn.onclick = stopService;
+        } else if (status === 'restarting') {
+          // Special styling for restarting state
+          statusBadge.className = 'badge bg-warning px-3 py-2';
+          statusBadge.innerHTML = '<i class="fas fa-sync-alt fa-spin me-1"></i> Restarting';
+          
+          // Disable the buttons during restart
+          toggleBtn.className = 'btn btn-secondary toggle-btn';
+          toggleBtn.innerHTML = '<i class="fas fa-hourglass-half me-2"></i>Wait';
+          toggleBtn.disabled = true;
+          
+          // Also disable other control buttons 
+          document.getElementById('restart-btn').disabled = true;
+          document.getElementById('diagnostics-btn').disabled = true;
         } else {
           statusBadge.className = 'badge bg-danger px-3 py-2';
           statusBadge.textContent = 'Stopped';
           activityMessage.textContent = 'Service is not running';
+          
+          // Update button to show Start
+          toggleBtn.className = 'btn btn-success toggle-btn';
+          toggleBtn.innerHTML = '<i class="fas fa-play me-2"></i>Start';
+          toggleBtn.onclick = startService;
         }
+      }
+
+      function startService() {
+        showToast('Starting service...', 'info');
+        API.startService().then(data => {
+          if (data.success) {
+            showToast('Service started successfully', 'success');
+            updateStatusUI('active');
+          } else {
+            showToast('Failed to start service', 'error');
+          }
+        });
+      }
+      
+      function stopService() {
+        showToast('Stopping service...', 'info');
+        API.stopService().then(data => {
+          if (data.success) {
+            showToast('Service stopped successfully', 'success');
+            updateStatusUI('inactive');
+          } else {
+            showToast('Failed to stop service', 'error');
+          }
+        });
       }
 
       // Load initial status
@@ -856,59 +1271,132 @@
         });
       }
 
-      // Load settings
+      // Add a more robust cleaner function to handle concatenated values
+      function cleanSettingsValue(value) {
+        if (!value) return '';
+        
+        // First remove any variable names prefixes
+        let cleanedValue = value.replace(/SMB_SERVER=|SMB_SHARE=|SMB_USER=|SMB_PASSWORD=/g, '');
+        
+        // Handle special case where server and share are concatenated
+        if (cleanedValue.includes('Data-Streamwave') && cleanedValue.startsWith('streamwave.local')) {
+          // Extract just the server part
+          return 'streamwave.local';
+        }
+        
+        return cleanedValue;
+      }
+
+      // Load settings - Fix credential persistence properly
       function loadSettings() {
+        // First, check if we have settings in localStorage
+        let localSettings = localStorage.getItem('mediaProcessorSettings');
+        let parsedSettings = localSettings ? JSON.parse(localSettings) : null;
+        
+        // If we have validated local settings, use them first
+        if (parsedSettings && parsedSettings.validated) {
+          // Apply local settings to form with cleaning
+          if (parsedSettings.SMB_SERVER) document.getElementById('smb-server').value = cleanSettingsValue(parsedSettings.SMB_SERVER);
+          if (parsedSettings.SMB_SHARE) document.getElementById('smb-share').value = cleanSettingsValue(parsedSettings.SMB_SHARE);
+          if (parsedSettings.SMB_USER) document.getElementById('smb-username').value = cleanSettingsValue(parsedSettings.SMB_USER);
+          if (parsedSettings.SMB_PASSWORD) document.getElementById('smb-password').value = cleanSettingsValue(parsedSettings.SMB_PASSWORD);
+          
+          if (parsedSettings.ENGLISH_MOVIE_PATH) document.getElementById('english-movies-path').value = cleanSettingsValue(parsedSettings.ENGLISH_MOVIE_PATH);
+          if (parsedSettings.ENGLISH_TV_PATH) document.getElementById('english-tv-path').value = cleanSettingsValue(parsedSettings.ENGLISH_TV_PATH);
+          if (parsedSettings.MALAYALAM_MOVIE_PATH) document.getElementById('malayalam-movies-path').value = cleanSettingsValue(parsedSettings.MALAYALAM_MOVIE_PATH);
+          if (parsedSettings.MALAYALAM_TV_PATH) document.getElementById('malayalam-tv-path').value = cleanSettingsValue(parsedSettings.MALAYALAM_TV_PATH);
+        }
+        
+        // Then also try to fetch from API
         API.getSettings().then(settings => {
           if (Object.keys(settings).length > 0) {
-            // SMB Settings
-            if (settings.SMB_SERVER) document.getElementById('smb-server').value = settings.SMB_SERVER;
-            if (settings.SMB_SHARE) document.getElementById('smb-share').value = settings.SMB_SHARE;
-            if (settings.SMB_USER) document.getElementById('smb-username').value = settings.SMB_USER;
-            if (settings.SMB_PASSWORD) document.getElementById('smb-password').value = settings.SMB_PASSWORD;
+            // Clean any potentially corrupted values
+            if (settings.SMB_SERVER) settings.SMB_SERVER = cleanSettingsValue(settings.SMB_SERVER);
+            if (settings.SMB_SHARE) settings.SMB_SHARE = cleanSettingsValue(settings.SMB_SHARE);
+            if (settings.SMB_USER) settings.SMB_USER = cleanSettingsValue(settings.SMB_USER);
+            if (settings.SMB_PASSWORD) settings.SMB_PASSWORD = cleanSettingsValue(settings.SMB_PASSWORD);
             
-            // Media Paths
-            if (settings.ENGLISH_MOVIE_PATH) document.getElementById('english-movies-path').value = settings.ENGLISH_MOVIE_PATH;
-            if (settings.ENGLISH_TV_PATH) document.getElementById('english-tv-path').value = settings.ENGLISH_TV_PATH;
-            if (settings.MALAYALAM_MOVIE_PATH) document.getElementById('malayalam-movies-path').value = settings.MALAYALAM_MOVIE_PATH;
-            if (settings.MALAYALAM_TV_PATH) document.getElementById('malayalam-tv-path').value = settings.MALAYALAM_TV_PATH;
+            // Only update if there's no corruption in values (simple validation)
+            const hasCorruption = 
+              (settings.SMB_SERVER && settings.SMB_SERVER.includes('SMB_')) ||
+              (settings.SMB_SHARE && settings.SMB_SHARE.includes('SMB_')) ||
+              (settings.SMB_USER && settings.SMB_USER.includes('SMB_')) ||
+              (settings.SMB_PASSWORD && settings.SMB_PASSWORD.includes('SMB_'));
+            
+            // Save validated settings to localStorage if they're clean
+            if (!hasCorruption) {
+              settings.validated = true;
+              localStorage.setItem('mediaProcessorSettings', JSON.stringify(settings));
+              
+              // Only update if the fields are not currently in edit mode
+              const smbForm = document.getElementById('smb-form');
+              const pathsForm = document.getElementById('paths-form');
+              
+              if (!smbForm.classList.contains('edit-mode')) {
+                // SMB Settings - apply with cleaning
+                if (settings.SMB_SERVER) document.getElementById('smb-server').value = cleanSettingsValue(settings.SMB_SERVER);
+                if (settings.SMB_SHARE) document.getElementById('smb-share').value = cleanSettingsValue(settings.SMB_SHARE);
+                if (settings.SMB_USER) document.getElementById('smb-username').value = cleanSettingsValue(settings.SMB_USER);
+                if (settings.SMB_PASSWORD) document.getElementById('smb-password').value = cleanSettingsValue(settings.SMB_PASSWORD);
+              }
+              
+              if (!pathsForm.classList.contains('edit-mode')) {
+                // Media Paths - apply with cleaning
+                if (settings.ENGLISH_MOVIE_PATH) document.getElementById('english-movies-path').value = cleanSettingsValue(settings.ENGLISH_MOVIE_PATH);
+                if (settings.ENGLISH_TV_PATH) document.getElementById('english-tv-path').value = cleanSettingsValue(settings.ENGLISH_TV_PATH);
+                if (settings.MALAYALAM_MOVIE_PATH) document.getElementById('malayalam-movies-path').value = cleanSettingsValue(settings.MALAYALAM_MOVIE_PATH);
+                if (settings.MALAYALAM_TV_PATH) document.getElementById('malayalam-tv-path').value = cleanSettingsValue(settings.MALAYALAM_TV_PATH);
+              }
+            } else {
+              console.warn('Detected corrupted settings from API, using localStorage values instead');
+            }
           }
+        }).catch(error => {
+          console.error('Error fetching settings, using cached values', error);
         });
       }
 
       // Event listeners for buttons
-      document.getElementById('start-btn').addEventListener('click', function() {
-        showToast('Starting service...', 'info');
-        API.startService().then(data => {
-          if (data.success) {
-            showToast('Service started successfully', 'success');
-            updateStatusUI('active');
-          } else {
-            showToast('Failed to start service', 'error');
-          }
-        });
-      });
-
-      document.getElementById('stop-btn').addEventListener('click', function() {
-        showToast('Stopping service...', 'info');
-        API.stopService().then(data => {
-          if (data.success) {
-            showToast('Service stopped successfully', 'success');
-            updateStatusUI('inactive');
-          } else {
-            showToast('Failed to stop service', 'error');
-          }
-        });
-      });
+      document.getElementById('toggle-service-btn').onclick = startService;
 
       document.getElementById('restart-btn').addEventListener('click', function() {
-        showToast('Restarting service...', 'info');
+        showToast('Restarting services...', 'info');
         API.restartService().then(data => {
           if (data.success) {
-            showToast('Service restarted successfully', 'success');
-            updateStatusUI('active');
+            if (data.willReconnect) {
+              showToast('Both services are restarting. The page will reload in 5 seconds...', 'success');
+              
+              // Add a visual countdown in the activity message
+              const activityMessage = document.getElementById('activity-message');
+              const originalMessage = activityMessage.textContent;
+              let countdown = 5;
+              
+              // Update the UI immediately to show we're waiting for restart
+              updateStatusUI('restarting');
+              
+              const countdownInterval = setInterval(() => {
+                activityMessage.textContent = `Restarting both services... Page will reload in ${countdown} seconds`;
+                countdown--;
+                
+                if (countdown < 0) {
+                  clearInterval(countdownInterval);
+                  // Reload the page to connect to the restarted services
+                  window.location.reload();
+                }
+              }, 1000);
+            } else {
+              showToast('Media processor service restarted successfully', 'success');
+              updateStatusUI('active');
+            }
           } else {
-            showToast('Failed to restart service', 'error');
+            showToast(`Failed to restart service: ${data.error || 'Unknown error'}`, 'error');
           }
+        }).catch(error => {
+          // If connection is lost during restart, show appropriate message
+          showToast('Connection lost during restart. The page will reload in 5 seconds...', 'warning');
+          setTimeout(() => {
+            window.location.reload();
+          }, 5000);
         });
       });
 
@@ -940,10 +1428,10 @@
 
       // Test SMB Connection
       document.getElementById('test-connection-btn').addEventListener('click', function() {
-        const server = document.getElementById('smb-server').value;
-        const share = document.getElementById('smb-share').value;
-        const user = document.getElementById('smb-username').value;
-        const password = document.getElementById('smb-password').value;
+        const server = cleanSettingsValue(document.getElementById('smb-server').value);
+        const share = cleanSettingsValue(document.getElementById('smb-share').value);
+        const user = cleanSettingsValue(document.getElementById('smb-username').value);
+        const password = cleanSettingsValue(document.getElementById('smb-password').value);
         
         if (!server || !share) {
           showToast('Server and share are required', 'error');
@@ -965,13 +1453,35 @@
       document.getElementById('diagnose-smb-btn').addEventListener('click', function() {
         showToast('Diagnosing SMB connection issues...', 'info');
         
+        // Ensure we're using clean values for diagnostics
+        const server = cleanSettingsValue(document.getElementById('smb-server').value);
+        const share = cleanSettingsValue(document.getElementById('smb-share').value);
+        const user = cleanSettingsValue(document.getElementById('smb-username').value);
+        const password = cleanSettingsValue(document.getElementById('smb-password').value);
+        
         const resultsContainer = document.getElementById('smb-diagnostic-results');
         const testResults = document.getElementById('smb-test-results');
         
         resultsContainer.style.display = 'block';
         testResults.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Running diagnostics...</div>';
         
-        API.diagnoseSMB().then(data => {
+        // Use cleaned values for diagnostics
+        const diagnosticSettings = {
+          server: server,
+          share: share,
+          user: user,
+          password: password
+        };
+        
+        // Add debug info to console
+        console.log('Requesting SMB diagnostics with:', {
+          server: server,
+          share: share,
+          user: user,
+          password: '********'
+        });
+        
+        API.diagnoseSMB(diagnosticSettings).then(data => {
           if (data.success) {
             let html = `
               <div class="mb-3">
@@ -993,9 +1503,21 @@
             testResults.innerHTML = html;
             showToast('SMB diagnostics completed', 'success');
           } else {
-            testResults.innerHTML = `<div class="alert alert-danger">Diagnostics failed: ${data.error}</div>`;
+            testResults.innerHTML = `
+              <div class="alert alert-danger">
+                <strong>Diagnostics failed:</strong> ${data.error || 'Unknown error'}<br>
+                <small class="d-block mt-2">Attempted with: Server: ${server}, Share: ${share}, User: ${user}</small>
+              </div>`;
             showToast('Failed to run SMB diagnostics', 'error');
           }
+        }).catch(error => {
+          testResults.innerHTML = `
+            <div class="alert alert-danger">
+              <strong>Connection error:</strong> ${error.message || 'Could not connect to server'}<br>
+              <small class="d-block mt-2">Attempted with: Server: ${server}, Share: ${share}, User: ${user}</small>
+              <small class="d-block mt-1">Please check server status and network connectivity.</small>
+            </div>`;
+          showToast('Connection error during diagnostics', 'error');
         });
       });
 
@@ -1006,15 +1528,24 @@
       document.getElementById('smb-form').addEventListener('submit', function(e) {
         e.preventDefault();
         const settings = {
-          SMB_SERVER: document.getElementById('smb-server').value,
-          SMB_SHARE: document.getElementById('smb-share').value,
-          SMB_USER: document.getElementById('smb-username').value,
-          SMB_PASSWORD: document.getElementById('smb-password').value
+          SMB_SERVER: cleanSettingsValue(document.getElementById('smb-server').value),
+          SMB_SHARE: cleanSettingsValue(document.getElementById('smb-share').value),
+          SMB_USER: cleanSettingsValue(document.getElementById('smb-username').value),
+          SMB_PASSWORD: cleanSettingsValue(document.getElementById('smb-password').value)
         };
         
         showToast('Saving SMB settings...', 'info');
         API.saveSettings(settings).then(data => {
           if (data.success) {
+            // Mark settings as validated and save to localStorage
+            settings.validated = true;
+            
+            // Get existing settings and merge
+            let existingSettings = localStorage.getItem('mediaProcessorSettings');
+            let parsedSettings = existingSettings ? JSON.parse(existingSettings) : {};
+            const updatedSettings = {...parsedSettings, ...settings};
+            
+            localStorage.setItem('mediaProcessorSettings', JSON.stringify(updatedSettings));
             showToast('SMB settings saved successfully', 'success');
           } else {
             showToast('Failed to save SMB settings', 'error');
@@ -1025,15 +1556,24 @@
       document.getElementById('paths-form').addEventListener('submit', function(e) {
         e.preventDefault();
         const settings = {
-          ENGLISH_MOVIE_PATH: document.getElementById('english-movies-path').value,
-          ENGLISH_TV_PATH: document.getElementById('english-tv-path').value,
-          MALAYALAM_MOVIE_PATH: document.getElementById('malayalam-movies-path').value,
-          MALAYALAM_TV_PATH: document.getElementById('malayalam-tv-path').value
+          ENGLISH_MOVIE_PATH: cleanSettingsValue(document.getElementById('english-movies-path').value),
+          ENGLISH_TV_PATH: cleanSettingsValue(document.getElementById('english-tv-path').value),
+          MALAYALAM_MOVIE_PATH: cleanSettingsValue(document.getElementById('malayalam-movies-path').value),
+          MALAYALAM_TV_PATH: cleanSettingsValue(document.getElementById('malayalam-tv-path').value)
         };
         
         showToast('Saving media paths...', 'info');
         API.saveSettings(settings).then(data => {
           if (data.success) {
+            // Mark settings as validated and save to localStorage
+            settings.validated = true;
+            
+            // Get existing settings and merge
+            let existingSettings = localStorage.getItem('mediaProcessorSettings');
+            let parsedSettings = existingSettings ? JSON.parse(existingSettings) : {};
+            const updatedSettings = {...parsedSettings, ...settings};
+            
+            localStorage.setItem('mediaProcessorSettings', JSON.stringify(updatedSettings));
             showToast('Media paths saved successfully', 'success');
           } else {
             showToast('Failed to save media paths', 'error');
@@ -1060,17 +1600,329 @@
               } else {
                 stats.files.slice(0, 50).forEach((f, i) => {
                   const row = document.createElement('tr');
-                  row.innerHTML = `<td>${i+1}</td><td>${f.name}</td><td>${f.type}</td><td>${f.language}</td><td>${new Date(f.processedAt).toLocaleString()}</td>`;
+                  
+                  // Add type emoji
+                  let typeEmoji = '📄';
+                  if (f.type === 'movie') {
+                    typeEmoji = '🎬';
+                  } else if (f.type === 'tvshow') {
+                    typeEmoji = '📺';
+                  }
+                  
+                  // Language badge
+                  let languageHTML = '';
+                  if (f.language === 'malayalam') {
+                    languageHTML = '<span class="language-icon language-mal">M</span> Malayalam';
+                  } else if (f.language === 'english') {
+                    languageHTML = '<span class="language-icon language-eng">E</span> English';
+                  } else {
+                    languageHTML = '<span class="language-icon language-other">O</span> ' + f.language;
+                  }
+                  
+                  row.innerHTML = `
+                    <td>${i+1}</td>
+                    <td>${f.name}</td>
+                    <td><span class="file-type-emoji">${typeEmoji}</span>${f.type}</td>
+                    <td>${languageHTML}</td>
+                    <td><i class="far fa-clock me-1"></i>${new Date(f.processedAt).toLocaleString()}</td>
+                  `;
                   tbody.appendChild(row);
                 });
               }
             }
           });
       }
+      
+      // Add sorting functionality
+      function setupTableSorting() {
+        const sortableHeaders = document.querySelectorAll('.sortable');
+        let currentSort = { column: null, direction: 'asc' };
+        
+        sortableHeaders.forEach(header => {
+          header.addEventListener('click', function() {
+            const column = this.dataset.sort;
+            const icon = this.querySelector('i');
+            
+            // Reset other headers
+            sortableHeaders.forEach(h => {
+              if (h !== this) {
+                h.querySelector('i').className = 'fas fa-sort';
+              }
+            });
+            
+            // Determine sort direction
+            let direction = 'asc';
+            if (currentSort.column === column) {
+              direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+            }
+            
+            // Update icon
+            icon.className = direction === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down';
+            
+            // Sort the table
+            sortTable(column, direction);
+            
+            // Update current sort
+            currentSort = { column, direction };
+          });
+        });
+      }
+      
+      function sortTable(column, direction) {
+        const table = document.getElementById('file-history-table');
+        const tbody = table.querySelector('tbody');
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        
+        // Skip if no rows or only "No files" message
+        if (rows.length <= 1 && rows[0].cells.length === 1) return;
+        
+        // Sort the rows
+        const sortedRows = rows.sort((a, b) => {
+          let aValue, bValue;
+          
+          if (column === 'type') {
+            aValue = a.cells[2].textContent.replace(/^[^\w]+/, '');
+            bValue = b.cells[2].textContent.replace(/^[^\w]+/, '');
+          } else if (column === 'language') {
+            aValue = a.cells[3].textContent.trim();
+            bValue = b.cells[3].textContent.trim();
+          } else if (column === 'date') {
+            aValue = new Date(a.cells[4].textContent.replace(/^[^0-9]+/, '')).getTime();
+            bValue = new Date(b.cells[4].textContent.replace(/^[^0-9]+/, '')).getTime();
+          }
+          
+          if (direction === 'asc') {
+            return aValue > bValue ? 1 : -1;
+          } else {
+            return aValue < bValue ? 1 : -1;
+          }
+        });
+        
+        // Remove existing rows
+        while (tbody.firstChild) {
+          tbody.removeChild(tbody.firstChild);
+        }
+        
+        // Add sorted rows
+        sortedRows.forEach(row => {
+          tbody.appendChild(row);
+        });
+      }
+      
+      // Handle editable panels
+      function setupEditablePanels() {
+        // SMB Settings panel
+        const smbForm = document.getElementById('smb-form');
+        const editSmbBtn = document.getElementById('edit-smb-btn');
+        const cancelSmbBtn = document.getElementById('cancel-smb-btn');
+        const smbInputs = smbForm.querySelectorAll('input');
+        const smbEditingActions = document.getElementById('smb-editing-actions');
+        let originalSmbValues = {};
+        
+        editSmbBtn.addEventListener('click', function() {
+          // Enable edit mode
+          smbForm.classList.add('edit-mode');
+          
+          // Change lock icon to unlocked
+          const lockIcon = editSmbBtn.querySelector('.lock-icon');
+          lockIcon.classList.remove('fa-lock');
+          lockIcon.classList.add('fa-lock-open');
+          
+          // Don't hide the button, just update its appearance
+          editSmbBtn.innerHTML = '<i class="fas fa-lock-open lock-icon"></i> Editing';
+          editSmbBtn.classList.add('editing');
+          smbEditingActions.classList.add('active');
+          
+          // Store original values
+          smbInputs.forEach(input => {
+            originalSmbValues[input.id] = input.value;
+            input.classList.remove('locked-field');
+            input.removeAttribute('readonly');
+          });
+          
+          // Add subtle highlight animation
+          smbForm.style.animation = 'none';
+          setTimeout(() => {
+            smbForm.style.animation = 'pulse 0.6s ease';
+          }, 10);
+        });
+        
+        cancelSmbBtn.addEventListener('click', function() {
+          // Disable edit mode
+          smbForm.classList.remove('edit-mode');
+          
+          // Change lock icon back to locked
+          const lockIcon = editSmbBtn.querySelector('.lock-icon');
+          lockIcon.classList.remove('fa-lock-open');
+          lockIcon.classList.add('fa-lock');
+          
+          // Reset edit button
+          editSmbBtn.innerHTML = '<i class="fas fa-lock lock-icon"></i> Edit';
+          editSmbBtn.classList.remove('editing');
+          smbEditingActions.classList.remove('active');
+          
+          // Restore original values
+          smbInputs.forEach(input => {
+            input.value = originalSmbValues[input.id] || '';
+            input.classList.add('locked-field');
+            input.setAttribute('readonly', true);
+          });
+        });
+        
+        // Media Paths panel
+        const pathsForm = document.getElementById('paths-form');
+        const editPathsBtn = document.getElementById('edit-paths-btn');
+        const cancelPathsBtn = document.getElementById('cancel-paths-btn');
+        const pathsInputs = pathsForm.querySelectorAll('input');
+        const pathsEditingActions = document.getElementById('paths-editing-actions');
+        let originalPathsValues = {};
+        
+        editPathsBtn.addEventListener('click', function() {
+          // Enable edit mode
+          pathsForm.classList.add('edit-mode');
+          
+          // Change lock icon to unlocked
+          const lockIcon = editPathsBtn.querySelector('.lock-icon');
+          lockIcon.classList.remove('fa-lock');
+          lockIcon.classList.add('fa-lock-open');
+          
+          // Don't hide the button, just update its appearance
+          editPathsBtn.innerHTML = '<i class="fas fa-lock-open lock-icon"></i> Editing';
+          editPathsBtn.classList.add('editing');
+          pathsEditingActions.classList.add('active');
+          
+          // Store original values
+          pathsInputs.forEach(input => {
+            originalPathsValues[input.id] = input.value;
+            input.classList.remove('locked-field');
+            input.removeAttribute('readonly');
+          });
+          
+          // Add subtle highlight animation
+          pathsForm.style.animation = 'none';
+          setTimeout(() => {
+            pathsForm.style.animation = 'pulse 0.6s ease';
+          }, 10);
+        });
+        
+        cancelPathsBtn.addEventListener('click', function() {
+          // Disable edit mode
+          pathsForm.classList.remove('edit-mode');
+          
+          // Change lock icon back to locked
+          const lockIcon = editPathsBtn.querySelector('.lock-icon');
+          lockIcon.classList.remove('fa-lock-open');
+          lockIcon.classList.add('fa-lock');
+          
+          // Reset edit button
+          editPathsBtn.innerHTML = '<i class="fas fa-lock lock-icon"></i> Edit';
+          editPathsBtn.classList.remove('editing');
+          pathsEditingActions.classList.remove('active');
+          
+          // Restore original values
+          pathsInputs.forEach(input => {
+            input.value = originalPathsValues[input.id] || '';
+            input.classList.add('locked-field');
+            input.setAttribute('readonly', true);
+          });
+        });
+        
+        // Handle form submission to exit edit mode
+        smbForm.addEventListener('submit', function(e) {
+          // Normal save logic handled elsewhere
+          setTimeout(() => {
+            // Change lock icon back to locked
+            const lockIcon = editSmbBtn.querySelector('.lock-icon');
+            lockIcon.classList.remove('fa-lock-open');
+            lockIcon.classList.add('fa-lock');
+            
+            // Reset edit button
+            editSmbBtn.innerHTML = '<i class="fas fa-lock lock-icon"></i> Edit';
+            editSmbBtn.classList.remove('editing');
+            smbForm.classList.remove('edit-mode');
+            smbEditingActions.classList.remove('active');
+            
+            smbInputs.forEach(input => {
+              input.classList.add('locked-field');
+              input.setAttribute('readonly', true);
+            });
+          }, 500);
+        });
+        
+        pathsForm.addEventListener('submit', function(e) {
+          // Normal save logic handled elsewhere
+          setTimeout(() => {
+            // Change lock icon back to locked
+            const lockIcon = editPathsBtn.querySelector('.lock-icon');
+            lockIcon.classList.remove('fa-lock-open');
+            lockIcon.classList.add('fa-lock');
+            
+            // Reset edit button
+            editPathsBtn.innerHTML = '<i class="fas fa-lock lock-icon"></i> Edit';
+            editPathsBtn.classList.remove('editing');
+            pathsForm.classList.remove('edit-mode');
+            pathsEditingActions.classList.remove('active');
+            
+            pathsInputs.forEach(input => {
+              input.classList.add('locked-field');
+              input.setAttribute('readonly', true);
+            });
+          }, 500);
+        });
+      }
+
+      // Pulse animation for edited panels
+      const style = document.createElement('style');
+      style.textContent = `
+        @keyframes pulse {
+          0% { box-shadow: 0 0 0 0 rgba(63, 81, 181, 0.4); }
+          70% { box-shadow: 0 0 0 10px rgba(63, 81, 181, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(63, 81, 181, 0); }
+        }
+        
+        [data-theme="dark"] .editable-panel {
+          animation-name: darkPulse;
+        }
+        
+        @keyframes darkPulse {
+          0% { box-shadow: 0 0 0 0 rgba(92, 107, 192, 0.4); }
+          70% { box-shadow: 0 0 0 10px rgba(92, 107, 192, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(92, 107, 192, 0); }
+        }
+      `;
+      document.head.appendChild(style);
+
       // Initialize
       loadSettings();
       loadLogs();
       loadStatsAndHistory();
+      setupTableSorting();
+      setupEditablePanels();
+
+      // Additional fix for initial load - completely reset fields if corrupted
+      setTimeout(() => {
+        // Check for concatenation in server field after initial load
+        const serverField = document.getElementById('smb-server');
+        if (serverField && serverField.value.includes('Data-Streamwave')) {
+          console.log('Detected concatenated server value, fixing...');
+          serverField.value = 'streamwave.local';
+          
+          // Force save to localStorage to prevent future issues
+          const settings = {
+            SMB_SERVER: 'streamwave.local',
+            SMB_SHARE: document.getElementById('smb-share').value,
+            SMB_USER: document.getElementById('smb-username').value,
+            SMB_PASSWORD: document.getElementById('smb-password').value,
+            validated: true
+          };
+          
+          // Update localStorage
+          let existingSettings = localStorage.getItem('mediaProcessorSettings');
+          let parsedSettings = existingSettings ? JSON.parse(existingSettings) : {};
+          const updatedSettings = {...parsedSettings, ...settings};
+          localStorage.setItem('mediaProcessorSettings', JSON.stringify(updatedSettings));
+        }
+      }, 1000); // Check after everything is loaded
     });
   </script>
 </body>

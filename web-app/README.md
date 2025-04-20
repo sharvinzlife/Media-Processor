@@ -15,6 +15,19 @@ The Media Processor Web Interface provides a user-friendly dashboard to control 
 - **Responsive Design**: Works on desktops, tablets, and mobile devices
 - **API Integration**: RESTful API for seamless integration with other applications
 
+## Recent Improvements
+
+- **Enhanced UI Controls**: Added locked/unlocked states for settings with edit mode toggle
+- **Credential Persistence**: Implemented local storage to prevent settings loss on page refresh
+- **Unified Restart System**: Restart button now restarts both services with visual countdown
+- **SMB Diagnostics**: Improved diagnostics with detailed error reporting and testing
+- **Data Validation**: Added robust input cleaning to prevent corruption of configuration values
+- **Status Animations**: Enhanced status display with loading animations and transitions
+- **Responsive Buttons**: Fixed UI issues with buttons disappearing during state changes
+- **Edit Mode Animation**: Added visual feedback when editing settings
+- **Error Handling**: Improved error detection and user-friendly error messages
+- **Auto-Reconnection**: Page automatically reloads after service restarts
+
 ## Technical Stack
 
 **Frontend:**

@@ -1,6 +1,15 @@
-# 🎬 Media Processor
+# 🎬 Media Processor 🎞️ 🍿
 
-> **Automatically organize your media files into structured libraries with intelligent language detection and extraction**
+<p align="center">
+  <img src="https://github.com/sharvinzlife/Media-Processor/raw/main/web-app/build/assets/logo.png" alt="Media Processor Logo" width="250">
+</p>
+
+<h3 align="center">
+  Automatically organizes your media files into structured libraries</br>
+  <em>and moves them to appropriate locations</em>
+</h3>
+
+> **Automatically organize your media files with intelligent language detection and extraction**
 
 ## ✨ Features
 
@@ -78,6 +87,37 @@ The Media Processor includes a modern web interface for easy control and monitor
 * **Persistent History** - File processing history is saved and persists across system restarts
 
 Access the web interface at: `http://your-server:3001`
+
+### Service Architecture
+
+The Media Processor system consists of two separate services:
+
+1. **`media-processor.service`**: Runs the actual media processing scripts
+2. **`media-processor-web.service`**: Serves the web interface and API on port 3001
+
+Important notes about service management:
+
+* The "Restart" button in the web interface only restarts the `media-processor.service`
+* If you make changes to the web interface code, you need to restart the web service separately:
+  ```bash
+  sudo systemctl restart media-processor-web.service
+  ```
+* When troubleshooting, you may need to restart both services:
+  ```bash
+  sudo systemctl restart media-processor.service
+  sudo systemctl restart media-processor-web.service
+  ```
+
+### Service Logs
+
+To view service logs for troubleshooting:
+```bash
+# Media processor logs
+journalctl -u media-processor.service -f
+
+# Web interface logs
+journalctl -u media-processor-web.service -f
+```
 
 ## 🔧 Configuration
 
@@ -170,6 +210,13 @@ DEBUG=true ./bin/media-processor.sh
 * ✅ **Modular Architecture** - Complete refactoring into separate, maintainable modules
 * ✅ **Modern Web Interface** - Responsive UI with dark mode support
 * ✅ **Improved SMB Handling** - More reliable file transfers and error handling
+* ✅ **Enhanced Web UI** - Added locked/unlocked states for settings with edit mode
+* ✅ **Credential Persistence** - Implemented local storage to prevent settings loss on page refresh
+* ✅ **Unified Restart Function** - Restart button now restarts both services with visual feedback
+* ✅ **Robust SMB Diagnostics** - Improved SMB diagnostics with detailed error reporting
+* ✅ **Input Validation** - Added data cleaning to prevent corruption of configuration values
+* ✅ **Service Status Animations** - Enhanced status display with loading animations during state transitions
+* ✅ **Advanced Error Handling** - Better error detection and reporting throughout the application
 
 ## 🔍 Language Extraction Process
 
