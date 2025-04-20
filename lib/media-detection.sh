@@ -24,7 +24,9 @@
 
 # Load required libraries
 if [ -z "$DEBUG_LOG_ENABLED" ]; then
-    source "$(dirname "$0")/logger.sh"
+    # Get the absolute path to the lib directory, regardless of where the script is run from
+    SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+    source "$SCRIPT_DIR/logger.sh"
 fi
 
 # Source the configuration and utilities
@@ -532,7 +534,7 @@ detect_audio_languages() {
     
     # Try to find audio language info in filename first
     local basename=$(basename "$input_file")
-    if [[ "$basename" =~ [. ](DUAL|MULTI)[. ] ]] || [[ "$basename" =~ [. ](DUAL|MULTI)$ ]]; then
+    if [[ "$basename" =~ [.\ ](DUAL|MULTI)[.\ ] || "$basename" =~ [.\ ](DUAL|MULTI)$ ]]; then
         debug_log "Audio language detected from filename: Multiple audio tracks"
         echo "MULTI"
         return 0

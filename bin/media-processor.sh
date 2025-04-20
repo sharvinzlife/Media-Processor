@@ -8,15 +8,10 @@
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 LIB_DIR="$SCRIPT_DIR/../lib"
 
-# Import our libraries (NO LONGER SOURCING language-extraction.sh)
-# Removed logger.sh as it doesn't exist
-source "$LIB_DIR/file-transfer.sh"
-source "$LIB_DIR/config.sh"
-source "$LIB_DIR/dashboard-api.sh"
-source "$LIB_DIR/media-utils.sh"
-
-# Define path to the language extraction script
-LANGUAGE_EXTRACTION_SCRIPT="$LIB_DIR/language-extraction.sh"
+# Custom log function to use until logger.sh is properly loaded
+log() {
+    echo "$(date) - $1"
+}
 
 # Source required libraries with error checking
 source_lib() {
@@ -25,19 +20,46 @@ source_lib() {
         source "$LIB_DIR/$lib_file"
         if [ $? -ne 0 ]; then
             # Use echo directly since logger might not be sourced yet
-            echo "$(date) - ERROR: Failed to source $lib_file"
+            log "ERROR: Failed to source $lib_file"
             exit 1
         fi
     else
-        echo "$(date) - ERROR: Required library file not found: $LIB_DIR/$lib_file"
+        log "ERROR: Required library file not found: $LIB_DIR/$lib_file"
         exit 1
     fi
 }
 
-# Source each library with error checking
-source_lib "utils.sh" # Assuming log() is defined here or in config.sh
-source_lib "media-detection.sh"
+# First, source the logger library
+source_lib "logger.sh"
+
+# Then source other libraries with error checking
+source_lib "utils.sh"
+source_lib "file-transfer.sh"
+source_lib "config.sh"
+source_lib "dashboard-api.sh"
+source_lib "media-utils.sh"
+
+# Try to source media-detection.sh with special handling
+if [ -f "$LIB_DIR/media-detection.sh" ]; then
+    source "$LIB_DIR/media-detection.sh"
+    if [ $? -ne 0 ]; then
+        log "ERROR: Failed to source media-detection.sh"
+        exit 1
+    fi
+else
+    log "ERROR: Required library file not found: $LIB_DIR/media-detection.sh"
+    exit 1
+fi
+
 source_lib "cleanup.sh"
+
+# Define path to the language extraction script
+LANGUAGE_EXTRACTION_SCRIPT="$LIB_DIR/language-extraction.sh"
+if [ ! -f "$LANGUAGE_EXTRACTION_SCRIPT" ]; then
+    log "ERROR: Language extraction script not found at $LANGUAGE_EXTRACTION_SCRIPT"
+    exit 1
+fi
+chmod +x "$LANGUAGE_EXTRACTION_SCRIPT"
 
 # --- REMOVED OBSOLETE FUNCTION CHECK --- #
 
