@@ -364,9 +364,10 @@ extract_mkv_tracks() {
         subtitle_option="--no-subtitles"
     fi
 
-    log_lib "Running mkvmerge extraction with Malayalam audio (track $malayalam_track): $(basename "$input_file")"
+    log_lib "Running mkvmerge extraction with all audio tracks: $(basename "$input_file")"
+    # Important: Keep all audio tracks instead of trying to select a specific one
+    # This ensures we don't accidentally drop the audio in the final file
     mkvmerge -o "$output_file" \
-        --audio-tracks "$malayalam_track" \
         $subtitle_option \
         "$input_file"
     local mkvmerge_status=$?
