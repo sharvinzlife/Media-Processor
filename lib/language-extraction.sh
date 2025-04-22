@@ -325,9 +325,21 @@ extract_mkv_tracks() {
     done
 
     # If no Malayalam track found by language, use track 5 (common in South Indian content)
+    # Or fallback to first available track if track 5 is not available
     if [[ -z "$malayalam_track" ]]; then
-        malayalam_track="5"
-        log_lib "No Malayalam track detected by language, using track 5"
+        # First check if track 5 exists in the available tracks
+        if echo "$audio_tracks" | grep -q "^5$"; then
+            malayalam_track="5"
+            log_lib "No Malayalam track detected by language, using track 5 (common pattern)"
+        # Then check if track 2 exists (often used for main audio)
+        elif echo "$audio_tracks" | grep -q "^2$"; then
+            malayalam_track="2"
+            log_lib "No Malayalam track detected by language, using track 2 as fallback"
+        # Finally use first available track as last resort
+        else
+            malayalam_track=$(echo "$audio_tracks" | head -1)
+            log_lib "No Malayalam track detected by language, using first available track: $malayalam_track"
+        fi
     fi
 
     # Find English subtitle track
