@@ -1,56 +1,160 @@
 {
-  "english_movies": 0,
+  "english_movies": 1,
   "malayalam_movies": 0,
   "english_tv_shows": 0,
-  "malayalam_tv_shows": 8,
+  "malayalam_tv_shows": 18,
   "files": [
     {
-      "name": "Sweet Kaaram Coffee S01E08 [1080p H.264] [575M].mkv",
+      "name": "www.1TamilMV.kim - Criminal Justice - A Family Matter S01E02 Buried Secrets 1080p_mal_extracted.mkv",
       "type": "tvshow",
       "language": "malayalam",
-      "processedAt": "2025-04-19T21:28:25Z"
+      "processedAt": "2025-06-16T10:09:28Z",
+      "path": "media/malayalam-tv-shows/Criminal Justice - A Family Matter/Season 1/Criminal Justice - A Family Matter S01E02 Buried Secrets 1080p.1080p.Malayalam.mkv",
+      "size": "1020.2MB"
     },
     {
-      "name": "Sweet Kaaram Coffee S01E05 [1080p H.264] [915M].mkv",
+      "name": "www.1TamilMV.kim - Criminal Justice - A Family Matter S01E01 A Birthday to Remember 1080p_mal_extracted.mkv",
       "type": "tvshow",
       "language": "malayalam",
-      "processedAt": "2025-04-19T21:28:13Z"
+      "processedAt": "2025-06-16T10:09:15Z",
+      "path": "media/malayalam-tv-shows/Criminal Justice - A Family Matter/Season 1/Criminal Justice - A Family Matter S01E01 A Birthday to Remember 1080p.1080p.Malayalam.mkv",
+      "size": "948.5MB"
     },
     {
-      "name": "Sweet Kaaram Coffee S01E06 [1080p H.264] [605M].mkv",
+      "name": "www.1TamilMV.kim - Criminal Justice - A Family Matter S01E03 Quid Pro Quo 1080p_mal_extracted.mkv",
       "type": "tvshow",
       "language": "malayalam",
-      "processedAt": "2025-04-19T21:27:58Z"
+      "processedAt": "2025-06-16T10:09:04Z",
+      "path": "media/malayalam-tv-shows/Criminal Justice - A Family Matter/Season 1/Criminal Justice - A Family Matter S01E03 Quid Pro Quo 1080p.1080p.Malayalam.mkv",
+      "size": "1010.7MB"
     },
     {
-      "name": "Sweet Kaaram Coffee S01E04 [1080p H.264] [773M].mkv",
+      "name": "www.1TamilMV.kim - Criminal Justice A Family Matter (2025) S01 EP04 WEB-DL - 1080p - AVC - [Tam + Tel + Hin + Mal + Kan] - 1.2GB - ESub_mal_extracted.mkv",
       "type": "tvshow",
       "language": "malayalam",
-      "processedAt": "2025-04-19T21:27:45Z"
+      "processedAt": "2025-06-16T10:02:19Z",
+      "path": "media/malayalam-tv-shows/Criminal Justice A Family Matter (2025)/Season 1/Criminal Justice A Family Matter (2025) S01 EP04.2GB - ESub.1080p.Malayalam.mkv",
+      "size": "970.8MB"
     },
     {
-      "name": "Sweet Kaaram Coffee S01E07 [1080p H.264] [512M].mkv",
+      "name": "www.1TamilMV.boo - Criminal Justice A Family Matter (2025) S01 EP05 WEB-DL - 1080p - AVC - [Tam + Tel + Hin + Mal + Kan] - 1.3GB - ESub_mal_extracted.mkv",
       "type": "tvshow",
       "language": "malayalam",
-      "processedAt": "2025-04-19T21:27:31Z"
+      "processedAt": "2025-06-16T10:02:08Z",
+      "path": "media/malayalam-tv-shows/Criminal Justice A Family Matter (2025)/Season 1/Criminal Justice A Family Matter (2025) S01 EP05.3GB - ESub.1080p.Malayalam.mkv",
+      "size": "1.1GB"
     },
     {
-      "name": "Sweet Kaaram Coffee S01E03 [1080p H.264] [651M].mkv",
-      "type": "tvshow",
-      "language": "malayalam",
-      "processedAt": "2025-04-19T21:27:20Z"
+      "name": "Sanet.st.Psych.The.Movie.2017.1080p.BluRay.DDP.5.1.H.265-iVy.mkv",
+      "type": "movie",
+      "language": "english",
+      "processedAt": "2025-06-16T09:27:16Z",
+      "path": "media/movies/Psych The Movie  1080p BluRay DDP 5 1 H.265-iVy (2017)/Psych The Movie  1080p BluRay DDP 5 1 H.265-iVy (2017).1080p.mkv",
+      "size": "1.3GB"
     },
     {
-      "name": "Sweet Kaaram Coffee S01E01 [1080p H.264] [383M].mkv",
+      "name": "www.1TamilMV.boo - Rana Naidu S02E09 Final Test.mkv",
       "type": "tvshow",
       "language": "malayalam",
-      "processedAt": "2025-04-19T21:26:06Z"
+      "processedAt": "2025-06-16T08:51:00Z",
+      "path": "media/malayalam-tv-shows/Rana Naidu/Season 2/Rana Naidu S02E09 Final Test.Malayalam.mkv",
+      "size": "0KB"
     },
     {
-      "name": "Sweet Kaaram Coffee S01E02 [1080p H.264] [556M].mkv",
+      "name": "www.1TamilMV.boo - Rana Naidu S02E08 Clean Test.mkv",
       "type": "tvshow",
       "language": "malayalam",
-      "processedAt": "2025-04-19T21:25:56Z"
+      "processedAt": "2025-06-16T08:38:46Z",
+      "path": "media/malayalam-tv-shows/Rana Naidu/Season 1/www.boo - Rana Naidu S02E08 Clean Test.Malayalam.mkv",
+      "size": "0KB"
+    },
+    {
+      "name": "www.1TamilMV.boo - Rana Naidu S02E07 Test Fix 2.mkv",
+      "type": "tvshow",
+      "language": "malayalam",
+      "processedAt": "2025-06-16T08:34:46Z",
+      "path": "media/malayalam-tv-shows/www.boo - Rana Naidu/Season 1/www.boo - Rana Naidu S02E07 Test Fix 2.Malayalam.mkv",
+      "size": "0KB"
+    },
+    {
+      "name": "www.1TamilMV.boo - Rana Naidu S02E06 Test Fix.mkv",
+      "type": "tvshow",
+      "language": "malayalam",
+      "processedAt": "2025-06-16T08:27:26Z",
+      "path": "media/malayalam-tv-shows/www.boo - Rana Naidu/Season 1/www.boo - Rana Naidu S02E06 Test Fix.Malayalam.mkv",
+      "size": "0KB"
+    },
+    {
+      "name": "www.1TamilMV.boo - Rana Naidu S02E04 Bloody Amateur.mkv",
+      "type": "tvshow",
+      "language": "malayalam",
+      "processedAt": "2025-06-16T08:16:04Z",
+      "path": "media/malayalam-tv-shows/www.boo - Rana Naidu/Season 1/www.boo - Rana Naidu S02E04 Bloody Amateur.Malayalam.mkv",
+      "size": "0KB"
+    },
+    {
+      "name": "www.1TamilMV.boo - Rana Naidu S02E04 Bloody Amateur_mal_extracted.mkv",
+      "type": "tvshow",
+      "language": "malayalam",
+      "processedAt": "2025-06-16T08:09:44Z",
+      "path": "media/malayalam-tv-shows/www.boo - Rana Naidu S02E04 Bloody Amateur/www.boo - Rana Naidu S02E04 Bloody Amateur.1080p.Malayalam.mkv",
+      "size": "558.1MB"
+    },
+    {
+      "name": "www.1TamilMV.boo - Rana Naidu S02E07 Sly Fox_mal_extracted.mkv",
+      "type": "tvshow",
+      "language": "malayalam",
+      "processedAt": "2025-06-16T08:09:36Z",
+      "path": "media/malayalam-tv-shows/www.boo - Rana Naidu S02E07 Sly Fox/www.boo - Rana Naidu S02E07 Sly Fox.1080p.Malayalam.mkv",
+      "size": "497.1MB"
+    },
+    {
+      "name": "www.1TamilMV.boo - Rana Naidu S02E01 One Last Job_mal_extracted.mkv",
+      "type": "tvshow",
+      "language": "malayalam",
+      "processedAt": "2025-06-16T08:09:29Z",
+      "path": "media/malayalam-tv-shows/www.boo - Rana Naidu S02E01 One Last Job/www.boo - Rana Naidu S02E01 One Last Job.1080p.Malayalam.mkv",
+      "size": "866.9MB"
+    },
+    {
+      "name": "www.1TamilMV.boo - Rana Naidu S02E03 Well Played Mr Naidu_mal_extracted.mkv",
+      "type": "tvshow",
+      "language": "malayalam",
+      "processedAt": "2025-06-16T08:09:18Z",
+      "path": "media/malayalam-tv-shows/www.boo - Rana Naidu S02E03 Well Played Mr Naidu/www.boo - Rana Naidu S02E03 Well Played Mr Naidu.1080p.Malayalam.mkv",
+      "size": "750.5MB"
+    },
+    {
+      "name": "www.1TamilMV.boo - Rana Naidu S02E05 It Will Never Be Okay_mal_extracted.mkv",
+      "type": "tvshow",
+      "language": "malayalam",
+      "processedAt": "2025-06-16T08:08:09Z",
+      "path": "media/malayalam-tv-shows/www.boo - Rana Naidu S02E05 It Will Never Be Okay/www.boo - Rana Naidu S02E05 It Will Never Be Okay.1080p.Malayalam.mkv",
+      "size": "522.8MB"
+    },
+    {
+      "name": "www.1TamilMV.boo - Rana Naidu S02E02 Feral Wild Dog_mal_extracted.mkv",
+      "type": "tvshow",
+      "language": "malayalam",
+      "processedAt": "2025-06-16T08:08:01Z",
+      "path": "media/malayalam-tv-shows/www.boo - Rana Naidu S02E02 Feral Wild Dog/www.boo - Rana Naidu S02E02 Feral Wild Dog.1080p.Malayalam.mkv",
+      "size": "392.3MB"
+    },
+    {
+      "name": "www.1TamilMV.boo - Rana Naidu S02E06 Two Faced_mal_extracted.mkv",
+      "type": "tvshow",
+      "language": "malayalam",
+      "processedAt": "2025-06-16T08:07:52Z",
+      "path": "media/malayalam-tv-shows/www.boo - Rana Naidu S02E06 Two Faced/www.boo - Rana Naidu S02E06 Two Faced.1080p.Malayalam.mkv",
+      "size": "213.4MB"
+    },
+    {
+      "name": "www.1TamilMV.boo - Rana Naidu S02E08 One Last Job Again_mal_extracted.mkv",
+      "type": "tvshow",
+      "language": "malayalam",
+      "processedAt": "2025-06-16T07:53:21Z",
+      "path": "media/malayalam-tv-shows/www.boo - Rana Naidu S02E08 One Last Job Again/www.boo - Rana Naidu S02E08 One Last Job Again.1080p.Malayalam.mkv",
+      "size": "689.5MB"
     }
   ]
 }

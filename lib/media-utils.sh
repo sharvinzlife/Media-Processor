@@ -1,13 +1,15 @@
 #!/bin/bash
 #
 # Media Utilities Module
-# Functions for media file analysis, language detection, and metadata extraction
+# Functions for media file analysis and metadata extraction
 #
 
-# Import logger if not already loaded
+# Import required dependencies
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 if ! type log > /dev/null 2>&1; then
-    source "$(dirname "$0")/logger.sh"
+    source "$SCRIPT_DIR/logger.sh"
 fi
+source "$SCRIPT_DIR/core-utils.sh"
 
 # Function to determine if a file is a TV show or movie
 is_tvshow() {

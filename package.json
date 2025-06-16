@@ -1,0 +1,38 @@
+{
+  "name": "media-processor",
+  "version": "1.0.0",
+  "description": "Automated media file processor with SMB support",
+  "main": "index.js",
+  "scripts": {
+    "start": "cd web-app && npm start",
+    "web-app": "cd web-app && npm start",
+    "install-deps": "npm install && cd web-app && npm install",
+    "dev": "cd web-app && npm run dev",
+    "build": "cd web-app && npm run build",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sharvinzlife/media-processor.git"
+  },
+  "keywords": [
+    "media",
+    "processor",
+    "ffmpeg",
+    "smb",
+    "automation"
+  ],
+  "author": "sharvinzlife",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/sharvinzlife/media-processor/issues"
+  },
+  "homepage": "https://github.com/sharvinzlife/media-processor#readme",
+  "dependencies": {
+    "dotenv": "^16.3.1",
+    "http-proxy-middleware": "^3.0.5"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}

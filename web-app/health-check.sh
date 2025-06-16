@@ -14,3 +14,12 @@ if [ "$RESPONSE" = "200" ]; then
 else
   echo "❌ Web server is not responding (HTTP $RESPONSE)"
 fi
+
+# Check diagnostics sudo permissions
+echo "Checking diagnostics permissions..."
+if sudo -n systemctl status media-processor.service &>/dev/null; then
+  echo "✅ Sudo diagnostics permissions are configured"
+else
+  echo "❌ Sudo diagnostics permissions are NOT configured"
+  echo "  Run 'sudo ./setup-diagnostics-sudo.sh' to fix this issue"
+fi

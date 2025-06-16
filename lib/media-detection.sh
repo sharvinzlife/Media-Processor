@@ -7,6 +7,13 @@
 # information such as resolution, codec, audio languages, subtitles,
 # and file size.
 #
+# Note: Core functionality has been moved to core-utils.sh
+# This file now acts as a wrapper around those core functions.
+
+# Source required utilities
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+source "$SCRIPT_DIR/core-utils.sh"
+#
 # Functions:
 # - detect_language: Determines the primary language of media content
 # - detect_resolution: Identifies video resolution from filename or media metadata
@@ -83,25 +90,79 @@ clean_filename() {
       name_part="${filename%.*}"
     fi
 
-    # 1. Remove common prefixes and references
-    local cleaned=$(echo "$name_part" | sed -E 's/^www\.[0-9]*TamilMV\.[a-zA-Z]{2,3}\s*-\s*//i')
-    cleaned=$(echo "$cleaned" | sed -E 's/^TamilMV\s*-\s*//i')
-    cleaned=$(echo "$cleaned" | sed -E 's/^Sanet\.st\.//i')
-    cleaned=$(echo "$cleaned" | sed -E 's/^Sanet\.st\s*-\s*//i')
-    cleaned=$(echo "$cleaned" | sed -E 's/^Sanet\s*-\s*//i')
-    cleaned=$(echo "$cleaned" | sed -E 's/^Softarchive\.is\.//i')
-    cleaned=$(echo "$cleaned" | sed -E 's/^Softarchive\.is\s*-\s*//i')
+    debug_log "Original name part: $name_part"
 
-    # 2. Aggressively strip all metadata tags from the remaining name part
+    # 1. Remove common prefixes and references with more comprehensive patterns
+    local cleaned="$name_part"
+    
+    # Common download site prefixes (expanded list)
+    cleaned=$(echo "$cleaned" | sed -E 's/^www\.[0-9]*TamilMV\.[a-zA-Z]{2,}(\s*-\s*|\.)//i')
+    cleaned=$(echo "$cleaned" | sed -E 's/^TamilMV(\s*-\s*|\.)//i')
+    cleaned=$(echo "$cleaned" | sed -E 's/^TamilBlasters(\s*-\s*|\.)//i')
+    cleaned=$(echo "$cleaned" | sed -E 's/^TamilRockers(\s*-\s*|\.)//i')
+    cleaned=$(echo "$cleaned" | sed -E 's/^TamilYogi(\s*-\s*|\.)//i')
+    cleaned=$(echo "$cleaned" | sed -E 's/^1TamilMV\.([a-zA-Z]{2,})(\s*-\s*|\.)//i')
+    cleaned=$(echo "$cleaned" | sed -E 's/^Sanet\.(st|me|lol)(\s*-\s*|\.)//i')
+    cleaned=$(echo "$cleaned" | sed -E 's/^Sanet(\s*-\s*|\.)//i')
+    cleaned=$(echo "$cleaned" | sed -E 's/^(Softarchive|SA)\.(is|cc|ws)(\s*-\s*|\.)//i')
+    cleaned=$(echo "$cleaned" | sed -E 's/^Softarchive(\s*-\s*|\.)//i')
+    
+    # Remove more generic website prefixes (catches others not explicitly listed)
+    cleaned=$(echo "$cleaned" | sed -E 's/^www\.[a-zA-Z0-9-]+\.[a-zA-Z]{2,}(\s*-\s*|\.)//i')
+    
+    debug_log "After prefix removal: $cleaned"
+
+    # 2. Remove text in square brackets that contains website domains
+    cleaned=$(echo "$cleaned" | sed -E 's/\[[^\]]*\.(com|net|org|me|io|cc|to|tv|st|fi|ws)[^\]]*\]//gi')
+    
+    # 3. Remove text in parentheses that contains website domains
+    cleaned=$(echo "$cleaned" | sed -E 's/\([^)]*\.(com|net|org|me|io|cc|to|tv|st|fi|ws)[^)]*\)//gi')
+    
+    # 4. Remove common scene group identifiers in brackets or parentheses
+    cleaned=$(echo "$cleaned" | sed -E 's/\[(YIFY|YTS|ETRG|ettv|CTR|RARBG|AAC|MkvCage|SPARKS|GECKOS|CHD|HDC|HDCam)\]//gi')
+    cleaned=$(echo "$cleaned" | sed -E 's/\((YIFY|YTS|ETRG|ettv|CTR|RARBG|AAC|MkvCage|SPARKS|GECKOS|CHD|HDC|HDCam)\)//gi')
+    
+    # 5. Remove common quality and source indicators when they appear as standalone tags
+    cleaned=$(echo "$cleaned" | sed -E 's/\b(dvdrip|bdrip|hdrip|webrip|camrip|hdcam|hdts|hdtc|web-dl|bluray|dvdscr)\b//gi')
+    
+    # 6. Remove common subtitle indicators
+    cleaned=$(echo "$cleaned" | sed -E 's/\b(sub(bed|title[sd]?)|esub[s]?)\b//gi')
+    
+    # 7. Remove year in parentheses at the end (will be added back by other functions if needed)
+    cleaned=$(echo "$cleaned" | sed -E 's/\s*\([12][0-9]{3}\)$//g')
+    
+    debug_log "After tag removal: $cleaned"
+
+    # 8. Aggressively strip all metadata tags from the remaining name part
     cleaned=$(strip_metadata_from_basename "$cleaned")
-
-    # 3. Replace underscores with spaces AFTER stripping tags
+    
+    # 9. Replace underscores with spaces AFTER stripping tags
     cleaned=$(echo "$cleaned" | sed 's/_/ /g')
+    
+    # 10. Final cleanup of spaces, hyphens, dots, etc.
+    cleaned=$(echo "$cleaned" | sed -E 's/\s+/ /g')               # Normalize spaces
+    cleaned=$(echo "$cleaned" | sed -E 's/\.+/./g')               # Normalize dots
+    cleaned=$(echo "$cleaned" | sed -E 's/-+/-/g')                # Normalize hyphens
+    cleaned=$(echo "$cleaned" | sed -E 's/\s*-\s*/ - /g')         # Normalize space around hyphens
+    
+    # Fix common issues with word truncation (like "ss" getting replaced with spaces)
+    # Look for common words that might have been truncated
+    cleaned=$(echo "$cleaned" | sed -E 's/\bcla /class /g')       # Fix "cla" to "class"
+    cleaned=$(echo "$cleaned" | sed -E 's/\bgla /glass /g')       # Fix "gla" to "glass"
+    cleaned=$(echo "$cleaned" | sed -E 's/\bpa /pass /g')         # Fix "pa" to "pass"
+    cleaned=$(echo "$cleaned" | sed -E 's/\bcro /cross /g')       # Fix "cro" to "cross"
+    
+    # Common Malayalam words that may get truncated
+    cleaned=$(echo "$cleaned" | sed -E 's/\bKallam Kallam/g')     # Fix "Kallam" to "Kallam"
+    
+    # Trim spaces, dots, and hyphens
+    cleaned=$(echo "$cleaned" | sed -E 's/(^\s+|\s+$)//g')        # Trim spaces
+    cleaned=$(echo "$cleaned" | sed -E 's/(^\.+|\.+$)//g')        # Trim dots
+    cleaned=$(echo "$cleaned" | sed -E 's/(^-+|-+$)//g')          # Trim hyphens
+    
+    debug_log "After final cleanup: $cleaned"
 
-    # 4. Final cleanup of spaces
-    cleaned=$(echo "$cleaned" | sed -E 's/\s+/ /g' | sed -E 's/^\s+|\s+$//g')
-
-    # 5. Re-attach the original extension (if one existed)
+    # 11. Re-attach the original extension (if one existed)
     if [ "${filename##*.}" != "$filename" ]; then
       echo "${cleaned}.${original_extension}"
     else
@@ -258,40 +319,77 @@ format_media_filename() {
     local file="$1"
     local title="$2"
     local ext="${file##*.}"
-    local formatted_name=""
     
-    # Extract metadata
-    local resolution=$(detect_resolution "$file")
-    local codec=$(extract_codec "$file")
-    local subtitle_info=$(extract_subtitle_info "$file")
-    local size=$(get_file_size_formatted "$file")
+    debug_log "format_media_filename: Using unified format_media_name function"
     
-    # Start with the title
-    formatted_name="$title"
+    # If a title was provided, we'll use that instead of auto-cleaning the filename
+    if [ -n "$title" ]; then
+        # Create a temporary file with the title we want
+        local temp_file=$(mktemp)
+        cp "$file" "$temp_file"
+        
+        # Rename the temp file to the title (keeps extension)
+        mv "$temp_file" "${temp_file%.*}.$ext"
+        
+        # Format with the new name, keeping tags
+        local result=$(format_media_name "${temp_file%.*}.$ext" "keep_tags")
+        
+        # Clean up temp file
+        rm -f "${temp_file%.*}.$ext"
+        
+        echo "$result"
+    else
+        format_media_name "$file"
+    fi
+}
+
+# Function to format TV show filename with series name, season, and episode
+format_tv_show_filename() {
+    local file="$1"
+    local series_title="$2"
+    local season="$3"
+    local episode="$4"
     
-    # Add resolution and codec if available
-    if [[ -n "$resolution" && -n "$codec" ]]; then
-        formatted_name="$formatted_name [$resolution $codec]"
-    elif [[ -n "$resolution" ]]; then
-        formatted_name="$formatted_name [$resolution]"
-    elif [[ -n "$codec" ]]; then
-        formatted_name="$formatted_name [$codec]"
+    # If series title is provided, use it; otherwise extract from filename
+    local show_name=""
+    if [ -n "$series_title" ]; then
+        show_name="$series_title"
+    else
+        show_name=$(extract_series_name "$(basename "$file")")
     fi
     
-    # Add subtitle info if available
-    if [[ -n "$subtitle_info" ]]; then
-        formatted_name="$formatted_name ($subtitle_info)"
+    # Format season and episode if provided
+    local season_episode=""
+    if [ -n "$season" ] && [ -n "$episode" ]; then
+        # Ensure proper formatting with leading zeros
+        season=$(printf "%02d" $((10#$season)))
+        episode=$(printf "%02d" $((10#$episode)))
+        season_episode="S${season}E${episode}"
+    else
+        # Extract from filename if not provided
+        season_episode=$(extract_season_episode "$(basename "$file")")
     fi
     
-    # Add file size
-    if [[ -n "$size" ]]; then
-        formatted_name="$formatted_name [$size]"
+    # Clean the show name
+    show_name=$(echo "$show_name" | sed -E 's/[\._\-]+$//g' | sed -E 's/\s+$//g')
+    
+    # Create base filename with show name and season/episode
+    local base_filename="${show_name} - ${season_episode}"
+    
+    # Format with media tags (resolution, codec, etc.)
+    local formatted_name=$(format_media_name "$file")
+    
+    # Extract just the tags part from the formatted name
+    local tags=""
+    if [[ "$formatted_name" =~ \[(.*)\] ]]; then
+        tags=" [${BASH_REMATCH[1]}]"
     fi
     
-    # Add extension
-    formatted_name="$formatted_name.$ext"
+    # Get original extension
+    local extension="${file##*.}"
     
-    echo "$formatted_name"
+    # Final formatted filename
+    echo "${base_filename}${tags}.${extension}"
 }
 
 # Function to extract subtitle information
@@ -346,62 +444,8 @@ get_file_size_formatted() {
 
 format_filename() {
     local input_file="$1"
-    local basename=$(basename "$input_file")
-    
-    # Detect language
-    local language=$(detect_language "$input_file")
-    debug_log "Detected language: $language"
-    
-    # Detect resolution
-    local resolution=$(detect_resolution "$input_file")
-    debug_log "Detected resolution: $resolution"
-    
-    # Detect codec
-    local codec=$(detect_codec "$input_file")
-    debug_log "Detected codec: $codec"
-    
-    # Get subtitle info
-    local subtitle_info=$(detect_subtitles "$input_file")
-    debug_log "Detected subtitles: $subtitle_info"
-    
-    # Get audio language info
-    local audio_info=$(detect_audio_languages "$input_file")
-    debug_log "Detected audio languages: $audio_info"
-    
-    # Get file size
-    local file_size=$(get_file_size_formatted "$input_file")
-    debug_log "File size: $file_size"
-    
-    # Format the filename with all the information
-    local formatted_filename="$basename"
-    if [[ "$resolution" != "unknown" && "$codec" != "unknown" ]]; then
-        formatted_filename="$basename [$resolution $codec]"
-    elif [[ "$resolution" != "unknown" ]]; then
-        formatted_filename="$basename [$resolution]"
-    elif [[ "$codec" != "unknown" ]]; then
-        formatted_filename="$basename [$codec]"
-    fi
-    
-    # Add audio info if available
-    if [[ "$audio_info" != "unknown" && "$audio_info" != "${language^^}" ]]; then
-        if [[ "$audio_info" == "DUAL" || "$audio_info" == "MULTI" ]]; then
-            formatted_filename="$formatted_filename ($audio_info-AUDIO)"
-        else
-            formatted_filename="$formatted_filename (AUDIO-$audio_info)"
-        fi
-    fi
-    
-    # Add subtitle info if available
-    if [[ -n "$subtitle_info" && "$subtitle_info" != "none" ]]; then
-        formatted_filename="$formatted_filename (SUB-$subtitle_info)"
-    fi
-    
-    # Add file size if available
-    if [[ "$file_size" != "unknown" ]]; then
-        formatted_filename="$formatted_filename [$file_size]"
-    fi
-    
-    echo "$formatted_filename"
+    debug_log "format_filename: Forwarding to unified format_media_name function"
+    format_media_name "$input_file"
 }
 
 # Function to detect the video codec of a media file
@@ -660,4 +704,154 @@ detect_language() {
     debug_log "Detect Language: Final detected language: $detected_language"
     echo "$detected_language"
     return 0
+}
+
+# Unified comprehensive function for media file naming
+# This function addresses all naming needs in one place and can replace all other naming functions
+format_media_name() {
+    local file_path="$1"
+    local options="$2" # Optional: comma-separated options (keep_tags, no_size, etc.)
+    
+    # Validate input
+    if [ ! -f "$file_path" ]; then
+        debug_log "Error: File not found: $file_path"
+        return 1
+    fi
+    
+    debug_log "Formatting name for file: $file_path"
+    
+    # Extract filename components
+    local full_filename=$(basename "$file_path")
+    local extension="${full_filename##*.}"
+    local filename="${full_filename%.*}"
+    
+    # Option processing
+    local keep_tags=false
+    local include_size=true
+    local include_codec=true
+    local include_audio=true
+    local include_subtitles=true
+    
+    if [ -n "$options" ]; then
+        IFS=',' read -ra OPTS <<< "$options"
+        for opt in "${OPTS[@]}"; do
+            case "$opt" in
+                keep_tags) keep_tags=true ;;
+                no_size) include_size=false ;;
+                no_codec) include_codec=false ;;
+                no_audio) include_audio=false ;;
+                no_subtitles) include_subtitles=false ;;
+            esac
+        done
+    fi
+    
+    # Step 1: Clean the filename (unless keep_tags is true)
+    local cleaned_name=""
+    if [ "$keep_tags" = true ]; then
+        cleaned_name="$filename"
+        debug_log "Keeping original filename with tags: $cleaned_name"
+    else
+        cleaned_name=$(clean_filename "$full_filename")
+        cleaned_name="${cleaned_name%.*}" # Remove extension from cleaned name
+        debug_log "Cleaned filename: $cleaned_name"
+    fi
+    
+    # Step 2: Detect TV show information (add back if it's a TV show)
+    local media_type=$(identify_media_type "$full_filename")
+    local season_episode=""
+    if [ "$media_type" = "tvshow" ]; then
+        season_episode=$(extract_season_episode "$cleaned_name")
+        # If season/episode info was cleaned out, add it back
+        if [ -n "$season_episode" ] && [[ ! "$cleaned_name" =~ $season_episode ]]; then
+            # Check if it's at the end of the name or needs to be inserted
+            if [[ "$cleaned_name" =~ ^(.+)[[:space:]]-[[:space:]](.+)$ ]]; then
+                # Format: "Show Name - Episode Title"
+                local show_name="${BASH_REMATCH[1]}"
+                local episode_title="${BASH_REMATCH[2]}"
+                cleaned_name="$show_name - $season_episode - $episode_title"
+            else
+                # Just append season/episode at the end
+                cleaned_name="$cleaned_name - $season_episode"
+            fi
+        fi
+        debug_log "TV show detected, formatted name with season/episode: $cleaned_name"
+    fi
+    
+    # Step 3: Collect media information
+    local info_parts=()
+    
+    # Get language
+    local language=$(detect_language "$file_path")
+    if [ "$language" != "unknown" ]; then
+        # Capitalize first letter
+        language=$(echo "${language:0:1}" | tr '[:lower:]' '[:upper:]')${language:1}
+        info_parts+=("$language")
+        debug_log "Added language: $language"
+    fi
+    
+    # Get resolution
+    local resolution=$(detect_resolution "$file_path")
+    if [ "$resolution" != "unknown" ]; then
+        info_parts+=("$resolution")
+        debug_log "Added resolution: $resolution"
+    fi
+    
+    # Get codec (if enabled)
+    if [ "$include_codec" = true ]; then
+        local codec=$(detect_codec "$file_path")
+        if [ "$codec" != "unknown" ]; then
+            info_parts+=("$codec")
+            debug_log "Added codec: $codec"
+        fi
+    fi
+    
+    # Get audio info (if enabled)
+    if [ "$include_audio" = true ]; then
+        local audio_info=$(detect_audio_languages "$file_path")
+        if [ "$audio_info" != "unknown" ]; then
+            if [ "$audio_info" = "DUAL" ] || [ "$audio_info" = "MULTI" ]; then
+                info_parts+=("$audio_info-Audio")
+                debug_log "Added audio info: $audio_info-Audio"
+            elif [ "$audio_info" != "${language^^}" ]; then  # Don't add if same as main language
+                info_parts+=("Audio-$audio_info")
+                debug_log "Added audio info: Audio-$audio_info"
+            fi
+        fi
+    fi
+    
+    # Get subtitle info (if enabled)
+    if [ "$include_subtitles" = true ]; then
+        local subtitle_info=$(detect_subtitles "$file_path")
+        if [ "$subtitle_info" != "none" ] && [ -n "$subtitle_info" ]; then
+            info_parts+=("Sub-$subtitle_info")
+            debug_log "Added subtitle info: Sub-$subtitle_info"
+        fi
+    fi
+    
+    # Get file size (if enabled)
+    if [ "$include_size" = true ]; then
+        local file_size=$(get_file_size_formatted "$file_path")
+        if [ "$file_size" != "unknown" ]; then
+            info_parts+=("$file_size")
+            debug_log "Added file size: $file_size"
+        fi
+    fi
+    
+    # Step 4: Build final filename with tags
+    local final_name="$cleaned_name"
+    for part in "${info_parts[@]}"; do
+        final_name="${final_name} [$part]"
+    done
+    
+    # Add back extension
+    final_name="${final_name}.${extension}"
+    
+    # Step 5: Clean up any extra spaces or brackets
+    final_name=$(echo "$final_name" | sed -E 's/\s{2,}/ /g' | sed -E 's/\[\s+/[/g' | sed -E 's/\s+\]/]/g')
+    
+    # Replace forbidden characters for SMB
+    final_name=$(echo "$final_name" | tr ':*/?"<>|\\' '--------')
+    
+    debug_log "Final formatted name: $final_name"
+    echo "$final_name"
 }

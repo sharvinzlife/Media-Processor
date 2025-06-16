@@ -15,11 +15,14 @@
 
 * 🔍 **Intelligent Media Detection** - Automatically identifies movies and TV shows
 * 🌐 **Robust Language Support** - Special focus on Malayalam content with enhanced language extraction
-* 🗂️ **Smart Organization** - Creates proper folder structures for your media library
+* 🗂️ **Smart TV Show Organization** - Groups episodes under series folders with proper season detection
+* 🧹 **Advanced Pattern Cleaning** - Removes website artifacts from filenames while preserving content
 * 🔄 **Automatic Processing** - Monitors download folders and processes new files
-* 🖥️ **Web Interface** - Control and monitor the processor through a sleek web UI
+* 🖥️ **Modern Web Interface** - Control and monitor through a glassmorphism-styled dashboard
+* 👨‍💼 **Admin Panel** - Manage regex patterns and website cleaning rules
 * 🔌 **SMB Integration** - Seamlessly transfers files to your media server
-* 🧹 **Cleanup Tools** - Removes leftover files and empty directories
+* 📊 **Real-time Stats** - Live media library statistics and processing status
+* 🛠️ **Pattern Management** - Add, test, and backup custom regex patterns
 
 ## 🏗️ Architecture
 
@@ -42,12 +45,36 @@ media-processor/
 └── service files         # Systemd service definitions
 ```
 
+## 🎯 Recent Major Improvements (v2.6.0)
+
+### TV Show Organization Fix
+- **Problem**: Episodes were scattered in separate folders instead of being grouped by series
+- **Solution**: Enhanced pattern matching and fallback logic for proper series/season organization
+- **Result**: Episodes now organized as `Series Name/Season X/Episode.mkv`
+
+### Advanced Pattern Cleaning  
+- **Problem**: Website artifacts (www.TamilMV, etc.) cluttering filenames and folder names
+- **Solution**: Precise regex patterns that clean website prefixes while preserving content
+- **Result**: Clean series names like "Rana Naidu" instead of "www.boo - Rana Naidu"
+
+### Admin Dashboard
+- **New Feature**: Pattern management interface for adding custom regex patterns
+- **Capabilities**: Test patterns, backup/restore configurations, restart services
+- **Benefits**: Easy maintenance and customization without code changes
+
+### Real-time Statistics
+- **Enhancement**: Dashboard now shows live stats from the Python API
+- **Features**: Auto-updating counters, real-time processing status
+- **Performance**: 30-second refresh cycle for current data
+
 ## 🚀 Getting Started
 
 ### Prerequisites
 
 * Linux system with Bash
 * `smbclient` for SMB file transfers
+* Node.js 18+ for web interface
+* Python 3.8+ for core processing
 * `mediainfo` for media analysis
 * `ffmpeg` for media processing
 * `mkvmerge` and `mkvextract` for MKV manipulation
@@ -86,26 +113,32 @@ The Media Processor includes a modern web interface for easy control and monitor
 * **Diagnostics** - Test connections and troubleshoot issues
 * **Persistent History** - File processing history is saved and persists across system restarts
 
-Access the web interface at: `http://your-server:3001`
+Access the web interface at: `http://your-server:3005`
 
 ### Service Architecture
 
 The Media Processor system consists of two separate services:
 
 1. **`media-processor.service`**: Runs the actual media processing scripts
-2. **`media-processor-web.service`**: Serves the web interface and API on port 3001
+2. **`media-processor-ui.service`**: Serves the web interface and API on port 3005
+
+> **Note**: To permanently update the systemd service to use port 3005, run:
+> ```bash
+> sudo ./update-port.sh
+> ```
+> This script updates the service file and restarts the service with the new port configuration.
 
 Important notes about service management:
 
 * The "Restart" button in the web interface only restarts the `media-processor.service`
 * If you make changes to the web interface code, you need to restart the web service separately:
   ```bash
-  sudo systemctl restart media-processor-web.service
+  sudo systemctl restart media-processor-ui.service
   ```
 * When troubleshooting, you may need to restart both services:
   ```bash
   sudo systemctl restart media-processor.service
-  sudo systemctl restart media-processor-web.service
+  sudo systemctl restart media-processor-ui.service
   ```
 
 ### Service Logs
@@ -116,7 +149,7 @@ To view service logs for troubleshooting:
 journalctl -u media-processor.service -f
 
 # Web interface logs
-journalctl -u media-processor-web.service -f
+journalctl -u media-processor-ui.service -f
 ```
 
 ## 🔧 Configuration
@@ -193,6 +226,17 @@ Enable verbose logging:
 DEBUG=true ./bin/media-processor.sh
 ```
 
+## 🎨 UI/UX Improvements
+
+* ✨ **Glassmorphism Design** - Modern translucent UI with backdrop blur effects
+* 🌓 **Enhanced Dark Mode** - Fixed visibility issues with proper contrast and shadows
+* 📁 **Clickable File Paths** - Click on file paths to open their location in file manager
+* 🎭 **Smooth Animations** - Added typing animation and hover effects throughout
+* 📱 **Responsive Design** - Improved mobile and desktop layouts
+* 🔧 **Port Configuration** - Changed default port from 3001 to 3005
+* 📊 **Real-time Stats** - Dashboard shows live processing statistics
+* 🎯 **Improved File Cleaning** - Enhanced regex patterns for removing website prefixes
+
 ## 📊 Recent Improvements
 
 * ✅ **Enhanced Language Detection** - Improved detection for all Malayalam language code variants
@@ -239,6 +283,55 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 * Thanks to all the open-source tools that make this possible
 * Special thanks to the MediaInfo and MKVToolNix projects
+
+## 🐍 Python Migration & Modularization
+
+The media processor has been completely migrated from shell scripts to Python with a fully modular architecture:
+
+### Core Features
+- **🏗️ Modular Architecture**: Complete separation of concerns with dedicated modules
+- **🔧 Configuration Management**: JSON-based configuration with the `ConfigManager` class
+- **📁 File History Management**: Persistent file tracking with the `FileHistoryManager`
+- **🎬 Media Detection**: Advanced media type and language detection with `MediaDetector`
+- **🌐 API Integration**: Clean dashboard API client with the `DashboardApiClient`
+- **📝 Logging Setup**: Centralized logging configuration and management
+
+### Architecture Overview
+
+```
+python_core/
+├── media_processor.py        # Main processor class
+├── api_server.py            # Flask API server
+└── modules/                 # Modular components
+    ├── config/
+    │   └── settings.py      # Configuration management
+    ├── utils/
+    │   ├── logging_setup.py # Logging utilities
+    │   └── file_history.py  # File history management
+    ├── api/
+    │   └── dashboard_client.py # Dashboard API client
+    └── media/
+        └── detector.py      # Media detection utilities
+```
+
+### Key Improvements
+- **📊 Statistics Synchronization**: Python and Node.js systems now share unified file history
+- **🔍 Recursive Scanning**: Full recursive directory traversal with `os.walk()` for nested media files
+- **🎯 Enhanced Detection**: Improved media type and language detection algorithms
+- **🧹 Clean Code Structure**: Eliminated duplicate code and properly separated concerns
+- **⚡ Performance**: Optimized processing with better error handling and logging
+
+### Benefits of Modularization
+- **🔧 Maintainability**: Each module handles specific functionality
+- **🧪 Testability**: Individual modules can be tested independently
+- **📈 Scalability**: Easy to add new features without affecting existing code
+- **🛠️ Debugging**: Clear separation makes troubleshooting easier
+- **🔄 Reusability**: Modules can be reused across different parts of the application
+
+For detailed information about the migration and cleanup:
+- [Python Migration](PYTHON-MIGRATION.md) - Migration status and removed legacy components
+- [Python Refactoring](PYTHON-REFACTORING.md) - Planned modular architecture for the Python codebase
+- [Changelog](CHANGELOG.md) - Complete history of all changes and improvements
 
 ---
 

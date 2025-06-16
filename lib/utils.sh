@@ -172,38 +172,70 @@ run_smb_command() {
     return $status
 }
 
-# Function to check SMB connection
+# Function to check SMB connection with enhanced debugging
 check_smb_connection() {
     log "Testing SMB connection to $SMB_SERVER/$SMB_SHARE"
+    
+    # First check if the server is reachable via ping
+    log "Testing if server is reachable via ping..."
+    ping -c 1 -W 3 "$SMB_SERVER" >/dev/null 2>&1
+    local ping_status=$?
+    
+    if [ $ping_status -ne 0 ]; then
+        log "ERROR: Server $SMB_SERVER is not reachable via ping. Check network or DNS settings."
+        return 1
+    else
+        log "Server $SMB_SERVER is reachable via ping"
+    fi
     
     # Create a credentials file
     local cred_file=$(mktemp)
     echo "username=$SMB_USER" > "$cred_file"
     echo "password=$SMB_PASSWORD" >> "$cred_file"
     
-    # Try to list shares on the server first
-    log "Testing with username: $SMB_USER"
-    smbclient -L $SMB_SERVER --authentication-file="$cred_file" 2>&1 | tee -a $LOG_FILE
-    local list_status=${PIPESTATUS[0]}
+    # Try direct connection with enhanced debugging
+    log "Testing SMB with: server=$SMB_SERVER, user=$SMB_USER, auth_method=$SMB_AUTH_METHOD"
+    
+    # Capture full output for debugging
+    local smb_output
+    smb_output=$(smbclient -L "$SMB_SERVER" -U "$SMB_USER%$SMB_PASSWORD" -m SMB3 2>&1)
+    local list_status=$?
+    
+    # Log output with username only 
+    log "SMB connection test results (status=$list_status):"
+    echo "$smb_output" | grep -v "$SMB_PASSWORD" | while read -r line; do
+        log "SMB: $line"
+    done
     
     # Remove the credentials file
     rm -f "$cred_file"
     
     if [ $list_status -ne 0 ]; then
-        log "ERROR: Failed to connect to SMB server $SMB_SERVER. Check if the server is reachable."
+        log "ERROR: Failed to connect to SMB server $SMB_SERVER. Authentication issue or server unavailable."
         return 1
     fi
     
     log "Verifying share exists: $SMB_SHARE"
-    run_smb_command "$SMB_SHARE" "ls" > /dev/null
+    # Try different SMB versions if needed
+    for smb_version in "SMB3" "SMB2" "SMB1"; do
+        log "Trying with $smb_version protocol..."
+        local share_output
+        share_output=$(smbclient "//$SMB_SERVER/$SMB_SHARE" -U "$SMB_USER%$SMB_PASSWORD" -m $smb_version -c "ls" 2>&1)
+        local share_status=$?
+        
+        if [ $share_status -eq 0 ]; then
+            log "Successfully connected to share using $smb_version protocol"
+            # Store the working SMB version for future use
+            export SMB_PROTOCOL_VERSION="$smb_version"
+            log "Successfully connected to SMB share $SMB_SERVER/$SMB_SHARE using $SMB_PROTOCOL_VERSION"
+            return 0
+        else
+            log "Failed to connect with $smb_version: $share_output"
+        fi
+    done
     
-    if [ $? -ne 0 ]; then
-        log "ERROR: $SMB_SHARE share does not exist or cannot be accessed."
-        return 1
-    fi
-    
-    log "Successfully connected to SMB share $SMB_SERVER/$SMB_SHARE"
-    return 0
+    log "ERROR: $SMB_SHARE share does not exist or cannot be accessed with any SMB protocol."
+    return 1
 }
 
 # Function to verify SMB path exists

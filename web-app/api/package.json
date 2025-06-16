@@ -1,7 +1,7 @@
 {
-  "name": "api",
+  "name": "media-processor-api",
   "version": "1.0.0",
-  "description": "Media Processor API",
+  "description": "API for Media Processor",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -12,6 +12,9 @@
   "license": "ISC",
   "dependencies": {
     "cors": "^2.8.5",
-    "express": "^4.21.2"
+    "diskusage": "^1.2.0",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "pidusage": "^4.0.1"
   }
 }

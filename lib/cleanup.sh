@@ -85,6 +85,13 @@ cleanup_empty_dirs() {
     find "$SOURCE_DIR" -type d -not -path "$SOURCE_DIR" -not -path "$SOURCE_DIR/Media extractor" | sort -r | while read dir; do
         # Check if directory is empty
         if [ -z "$(ls -A "$dir" 2>/dev/null)" ]; then
+            # Skip the root JDownloader directory and other protected paths
+            if [ "$dir" = "/home/sharvinzlife/Documents/JDownloader" ] || \
+               [ "$(basename "$dir")" = "JDownloader" ]; then
+                log "Preserving root directory: $dir"
+                continue
+            fi
+            
             if [ "$DRY_RUN" = true ]; then
                 log "DRY RUN: Would remove empty directory: $dir"
             else
@@ -131,8 +138,15 @@ cleanup_original_files() {
         # Remove empty directories
         local dir=$(dirname "$file")
         if [ -d "$dir" ] && [ -z "$(ls -A "$dir")" ]; then
-            log "Removing empty directory: $dir"
-            rmdir "$dir"
+            # Don't remove protected directories
+            if [ "$dir" = "/home/sharvinzlife/Documents/JDownloader" ] || \
+               [ "$dir" = "$SOURCE_DIR" ] || \
+               [ "$(basename "$dir")" = "JDownloader" ]; then
+                log "Preserving root directory: $dir"
+            else
+                log "Removing empty directory: $dir"
+                rmdir "$dir"
+            fi
         fi
     fi
 }

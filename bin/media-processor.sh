@@ -84,7 +84,7 @@ process_media_file() {
         return 1
     fi
 
-    # Clean the filename for better organization (remove site prefixes, etc.)
+    # Use the cleaned_filename function from media-detection.sh instead of local implementation
     local cleaned_base_name=$(clean_filename "$original_filename")
     log "Cleaned base filename: $cleaned_base_name"
 
@@ -203,19 +203,33 @@ process_media_file() {
     local target_dir=$(determine_target_directory "$file" "$identified_language" "$media_type" "$final_cleaned_base_name")
     log "Target directory: $target_dir"
 
-    # Format final filename using the *file_to_process* (could be original or extracted)
-    # and the *final_cleaned_base_name*
+    # Format final filename using our unified format_media_name function
     local final_filename=""
-    local detected_languages=$(extract_language_tracks_mediainfo "$file_to_process") # Get languages from the file we are actually using
-
+    
     if [ "$media_type" = "tvshow" ]; then
+        # For TV shows, we need to ensure the series name and episode info is preserved
         local series_name=$(extract_series_name "$final_cleaned_base_name")
         local season_episode=$(extract_season_episode "$final_cleaned_base_name")
         local base_tv_name="${series_name} ${season_episode}"
-        final_filename=$(format_media_filename "$file_to_process" "$base_tv_name" "$detected_languages")
+        
+        # Create a temporary named file to use with format_media_name
+        local temp_tv_file=$(mktemp)
+        cp "$file_to_process" "$temp_tv_file"
+        
+        # Rename the temp file with the TV base name
+        local temp_tv_named_file="${temp_tv_file}.${file_extension}"
+        mv "$temp_tv_file" "$temp_tv_named_file"
+        
+        # Format using our unified function with keep_tags option
+        final_filename=$(format_media_name "$temp_tv_named_file" "keep_tags")
+        
+        # Clean up temp file
+        rm -f "$temp_tv_named_file"
     else
-        final_filename=$(format_media_filename "$file_to_process" "$final_cleaned_base_name" "$detected_languages")
+        # For movies, we can directly use the unified function
+        final_filename=$(format_media_name "$file_to_process")
     fi
+    
     log "Formatted filename: $final_filename"
 
     # --- File Transfer ---
@@ -276,8 +290,16 @@ process_media_file() {
             # Remove empty parent directory if possible
             local parent_dir=$(dirname "$file")
             if [ -d "$parent_dir" ] && [ "$parent_dir" != "$SOURCE_DIR" ] && [ -z "$(ls -A "$parent_dir")" ]; then
-                log "Removing empty parent directory: $parent_dir"
-                rmdir "$parent_dir"
+                # Don't remove the main JDownloader directory - check if it's not directly the SOURCE_DIR
+                # or a specifically preserved directory
+                if [ "$parent_dir" != "/home/sharvinzlife/Documents/JDownloader" ] && \
+                   [ "$parent_dir" != "$SOURCE_DIR" ] && \
+                   [ "$(basename "$parent_dir")" != "JDownloader" ]; then
+                    log "Removing empty parent directory: $parent_dir"
+                    rmdir "$parent_dir"
+                else
+                    log "Preserving root directory: $parent_dir"
+                fi
             fi
         elif [ "$DRY_RUN" = true ]; then
              log "DRY RUN: Would remove original file: $file"
@@ -300,7 +322,10 @@ process_media_file() {
 # --- Main Processing Loop ---
 main() {
     log "Starting media monitoring for $SOURCE_DIR"
-
+    
+    # Initialize connection status variable
+    SMB_CONNECTED=false
+    
     if [ "$DRY_RUN" = true ]; then
         log "Operating mode: DRY RUN - no files will be copied or deleted"
     else

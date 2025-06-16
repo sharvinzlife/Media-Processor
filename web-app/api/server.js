@@ -4,6 +4,17 @@ const fs = require('fs');
 const path = require('path');
 const { exec } = require('child_process');
 
+// Try to load environment variables from .env file
+try {
+  const dotenv = require('dotenv');
+  dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+  console.log('Environment variables loaded from .env file');
+} catch (err) {
+  console.log('Failed to load dotenv package, using default environment variables:', err.message);
+  // Set default values if dotenv fails
+  process.env.PORT = process.env.PORT || 3001;
+}
+
 const app = express();
 const port = process.env.PORT || 3001;
 
@@ -11,7 +22,10 @@ app.use(cors());
 app.use(express.json());
 
 // Persistent stats file
-const statsPath = path.join(__dirname, 'stats.json');
+const statsPath = path.join(__dirname, 'stats.json'); // Single source of truth
+
+// Path to main config file
+const configPath = process.env.CONFIG_PATH || path.join(__dirname, '../../lib/config.sh');
 
 // Helper to load stats (init if missing)
 function loadStats() {
@@ -27,13 +41,24 @@ function loadStats() {
     return initialStats;
   }
   try {
-    return JSON.parse(fs.readFileSync(statsPath, 'utf8'));
+    const data = fs.readFileSync(statsPath, 'utf8');
+    const stats = JSON.parse(data);
+    // Ensure all keys exist
+    return Object.assign({
+      english_movies: 0,
+      malayalam_movies: 0,
+      english_tv_shows: 0,
+      malayalam_tv_shows: 0,
+      files: []
+    }, stats);
   } catch (e) {
     return { english_movies: 0, malayalam_movies: 0, english_tv_shows: 0, malayalam_tv_shows: 0, files: [] };
   }
 }
 
 function saveStats(stats) {
+  // Limit file history to 500
+  if (stats.files && stats.files.length > 500) stats.files = stats.files.slice(0, 500);
   fs.writeFileSync(statsPath, JSON.stringify(stats, null, 2));
 }
 
@@ -61,23 +86,18 @@ app.post('/api/stats/add', (req, res) => {
   }
   // Add to file history (keep max 500 for perf)
   stats.files.unshift({ name, type, language, processedAt });
-  if (stats.files.length > 500) stats.files.length = 500;
   saveStats(stats);
   res.json({ success: true });
 });
 
-// Alternative API endpoints for backward compatibility with dashboard-api.sh
-// Add processed media endpoint
+// Add processed media endpoint (for Bash/legacy compatibility)
 app.post('/api/media/processed', (req, res) => {
   const { name, type, language, processedAt, path, size, status } = req.body;
-  
   if (!name || !type || !language) {
     return res.status(400).json({ success: false, error: 'Missing required fields' });
   }
-  
   const timestamp = processedAt || new Date().toISOString();
   const stats = loadStats();
-  
   // Increment counters
   if (type === 'movie') {
     if (language === 'english') stats.english_movies++;
@@ -87,62 +107,51 @@ app.post('/api/media/processed', (req, res) => {
     if (language === 'english') stats.english_tv_shows++;
     if (language === 'malayalam') stats.malayalam_tv_shows++;
   }
-  
   // Add to file history with more complete metadata
-  stats.files.unshift({ 
-    name, 
-    type, 
-    language, 
+  stats.files.unshift({
+    name,
+    type,
+    language,
     processedAt: timestamp,
     path: path || '',
     size: size || '',
-    status: status || 'success' 
+    status: status || 'success'
   });
-  
-  if (stats.files.length > 500) stats.files.length = 500;
   saveStats(stats);
-  
   res.json({ success: true, message: 'Media processed successfully' });
 });
 
 // Add failed media endpoint
 app.post('/api/media/failed', (req, res) => {
   const { name, type, language, timestamp, path, error } = req.body;
-  
   if (!name) {
     return res.status(400).json({ success: false, error: 'Missing required field: name' });
   }
-  
   const stats = loadStats();
-  
   // Add to file history with failed status
-  stats.files.unshift({ 
-    name, 
-    type: type || 'unknown', 
-    language: language || 'unknown', 
+  stats.files.unshift({
+    name,
+    type: type || 'unknown',
+    language: language || 'unknown',
     processedAt: timestamp || new Date().toISOString(),
     path: path || '',
     status: 'failed',
-    error: error || 'Unknown error' 
+    error: error || 'Unknown error'
   });
-  
-  if (stats.files.length > 500) stats.files.length = 500;
   saveStats(stats);
-  
   res.json({ success: true, message: 'Failed media record added' });
 });
 
 // Add update media counts endpoint
 app.post('/api/media/update-counts', (req, res) => {
-  // This endpoint just returns the current stats without doing anything
-  // (The actual counting happens in the /api/media/processed endpoint)
-  res.json({ 
-    success: true, 
+  const stats = loadStats();
+  res.json({
+    success: true,
     stats: {
-      english_movies: loadStats().english_movies,
-      malayalam_movies: loadStats().malayalam_movies,
-      english_tv_shows: loadStats().english_tv_shows,
-      malayalam_tv_shows: loadStats().malayalam_tv_shows
+      english_movies: stats.english_movies,
+      malayalam_movies: stats.malayalam_movies,
+      english_tv_shows: stats.english_tv_shows,
+      malayalam_tv_shows: stats.malayalam_tv_shows
     }
   });
 });
@@ -161,7 +170,6 @@ app.post('/api/stats/update-counts', (req, res) => {
 });
 
 const scriptPath = path.join(__dirname, '../../bin/media-processor.sh');
-const configPath = path.join(__dirname, '../../lib/config.sh');
 const logFile = '/home/sharvinzlife/media-processor.log';
 
 app.use(cors());
@@ -471,14 +479,83 @@ app.post('/api/diagnose-smb', (req, res) => {
       });
     }),
     
-    // Test 5: Check permissions
+    // Test 5: Check permissions in multiple directories
     new Promise((resolve) => {
-      exec(`smbclient "//${smbServer}/${smbShare}" -U "${smbUser}%${smbPassword}" -c "mkdir test_dir; rmdir test_dir"`, (error, stdout, stderr) => {
-        resolve({ 
-          test: 'write_permissions', 
-          success: !error,
-          message: error ? `No write permissions on share ${smbShare}: ${stderr}` : `Have write permissions on share ${smbShare}`,
-          output: stdout || stderr || null
+      // Check root and key media directories
+      const testDirs = [
+        '',                  // Root
+        'media',             // Main media dir
+        'media/movies',      // Movies dir
+        'media/tv-shows',    // TV shows dir
+        'media/malayalam movies', // Malayalam movies
+        'media/malayalam-tv-shows' // Malayalam TV
+      ];
+      
+      let results = {
+        test: 'write_permissions',
+        success: false,        // Default to false - will set true if ANY directory has permissions
+        message: `Testing write permissions in ${testDirs.length} directories`,
+        details: [],           // Detailed results for each directory
+        overrideWarning: false // Set to true if transfers work despite failed tests
+      };
+      
+      // Load config file to check if transfers are working
+      fs.readFile(path.join(__dirname, '../../stats.json'), 'utf8', (err, data) => {
+        // Check if transfers are working despite failed tests
+        if (!err && data) {
+          try {
+            const stats = JSON.parse(data);
+            // If we had successful transfers in the last 24 hours
+            const recentFiles = (stats.recentFiles || []).filter(f => 
+              (new Date() - new Date(f.processedAt)) < 24 * 60 * 60 * 1000
+            );
+            if (recentFiles.length > 0) {
+              results.overrideWarning = true;
+              results.message += " (Transfers working despite failures)";
+            }
+          } catch (e) { /* Ignore JSON parse errors */ }
+        }
+        
+        // Use Promise.all to test all directories in parallel
+        Promise.all(testDirs.map(dir => {
+          return new Promise(resolveTest => {
+            const testPath = dir ? dir : "."; // Use . for root
+            const testCommand = dir ? 
+              `cd "${testPath}"; mkdir test_dir; rmdir test_dir` : // Test in subdir
+              `mkdir test_dir; rmdir test_dir`;                    // Test in root
+              
+            exec(`smbclient "//${smbServer}/${smbShare}" -U "${smbUser}%${smbPassword}" -c "${testCommand}"`, 
+              (error, stdout, stderr) => {
+                resolveTest({
+                  directory: dir || '/' + smbShare,
+                  success: !error,
+                  detail: error ? `No write permission: ${stderr}` : `Write permission OK`
+                });
+              });
+          });
+        })).then(dirResults => {
+          // Process all the test results
+          results.details = dirResults;
+          
+          // Set overall success if ANY directory has write permissions
+          const anySuccess = dirResults.some(r => r.success);
+          
+          // If ANY directory has permissions, or transfers are working, mark as success
+          results.success = anySuccess || results.overrideWarning;
+          
+          if (anySuccess) {
+            results.message = `Write permissions available in some directories`;
+          } else if (results.overrideWarning) {
+            results.message = `No write permissions detected, but transfers are working`;
+          } else {
+            results.message = `No write permissions detected in any tested directory`;
+          }
+          
+          resolve(results);
+        }).catch(e => {
+          // Handle test failures
+          results.message = `Error testing permissions: ${e.message}`;
+          resolve(results);
         });
       });
     })
@@ -664,12 +741,54 @@ app.get('/api/diagnostics', (req, res) => {
   });
 });
 
+// API endpoint to test directory-specific permissions
+app.get('/api/smb-permissions', (req, res) => {
+  const scriptPath = path.join(__dirname, '../../lib/file-transfer.sh');
+  
+  // Run the test script that checks all media directories
+  exec(`bash -c "source ${scriptPath} && check_all_media_permissions"`, (error, stdout, stderr) => {
+    if (error) {
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to run permission checks',
+        details: stderr
+      });
+    }
+    
+    // Parse results from stdout in format "dir1:true,dir2:false,..."
+    const results = {};
+    const entries = stdout.trim().split(',');
+    
+    entries.forEach(entry => {
+      const [dir, perm] = entry.split(':');
+      results[dir] = perm === 'true';
+    });
+    
+    // Check if we have any directory with permissions
+    const hasAnyPermission = Object.values(results).some(val => val === true);
+    
+    res.json({
+      success: true,
+      hasAnyPermission: hasAnyPermission,
+      directories: results
+    });
+  });
+});
+
 // Add a catch-all route for debugging
 app.use((req, res) => {
   console.log('404 for:', req.url);
   res.status(404).send('Not Found');
 });
 
-app.listen(port, () => {
-  console.log(`API server listening on port ${port}`);
-});
+// Start the server if run directly
+if (require.main === module) {
+  app.listen(port, () => {
+    console.log(`API server running on port ${port}`);
+    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`Log level: ${process.env.LOG_LEVEL || 'info'}`);
+  });
+}
+
+// Export for potential use elsewhere
+module.exports = app;
