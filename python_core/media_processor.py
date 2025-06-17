@@ -806,8 +806,7 @@ class MediaProcessor:
                             mkdir_cmd = [
                                 'smbclient', f'//{smb_server}/{smb_share}',
                                 '-A', creds_path,
-                                '--option=client min protocol=SMB2',
-                                '--option=client max protocol=SMB3',
+                                '-m', 'SMB3',
                                 '-c', f'mkdir "{current_dir}"'
                             ]
                             # Run mkdir (ignore errors as directory might exist)
@@ -817,9 +816,7 @@ class MediaProcessor:
                 put_cmd = [
                     'smbclient', f'//{smb_server}/{smb_share}',
                     '-A', creds_path,
-                    '--option=client min protocol=SMB2',
-                    '--option=client max protocol=SMB3',
-                    '--option=client ntlmv2 auth=yes',
+                    '-m', 'SMB3',
                     '-c', f'put "{source_path}" "{target_path_on_share}"'
                 ]
                 

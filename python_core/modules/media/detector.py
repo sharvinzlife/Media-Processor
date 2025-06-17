@@ -21,7 +21,7 @@ class MediaDetector:
         ]
         
         self.malayalam_indicators = [
-            'malayalam', 'mal', 'ml', 'kerala', 'mollywood'
+            'malayalam', 'mal', 'ml', 'kerala', 'mollywood', 'malayalee', 'malayali', 'm', 'M'
         ]
         
         self.english_indicators = [
