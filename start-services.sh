@@ -12,8 +12,8 @@ mkdir -p /home/sharvinzlife/media-processor/logs
 cd /home/sharvinzlife/media-processor
 
 # Activate Python virtual environment
-if [ -f "venv/bin/activate" ]; then
-    source venv/bin/activate
+if [ -f "python_core/venv/bin/activate" ]; then
+    source python_core/venv/bin/activate
     echo "Activated Python virtual environment"
 else
     echo "Warning: Python virtual environment not found"
