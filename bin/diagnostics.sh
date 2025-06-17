@@ -8,39 +8,57 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-# Function to log messages
+# Function to log messages (disable when outputting JSON)
 log_message() {
-  echo -e "${GREEN}[DIAG] $1${NC}" >&2
+  if [ -z "$JSON_OUTPUT_MODE" ]; then
+    echo -e "${GREEN}[DIAG] $1${NC}" >&2
+  fi
 }
 
 log_warning() {
-  echo -e "${YELLOW}[DIAG] WARNING: $1${NC}" >&2
+  if [ -z "$JSON_OUTPUT_MODE" ]; then
+    echo -e "${YELLOW}[DIAG] WARNING: $1${NC}" >&2
+  fi
 }
 
 log_error() {
-  echo -e "${RED}[DIAG] ERROR: $1${NC}" >&2
+  if [ -z "$JSON_OUTPUT_MODE" ]; then
+    echo -e "${RED}[DIAG] ERROR: $1${NC}" >&2
+  fi
 }
 
 # Load environment variables if available
 ENV_FILE="$(dirname "$(dirname "$0")")/.env"
 if [ -f "$ENV_FILE" ]; then
-  export $(grep -v '^#' "$ENV_FILE" | xargs)
+  set -a  # automatically export all variables
+  source "$ENV_FILE"
+  set +a  # turn off automatic export
   log_message "Loaded environment from $ENV_FILE"
 fi
 
 # Begin diagnostics
 log_message "Starting comprehensive diagnostics..."
 
-# Check if the Python processor service is running
-PY_SERVICE_STATUS=$(systemctl is-active media-processor-py.service 2>/dev/null || echo "not-found")
+# Check if processes are running (instead of systemd services)
+if pgrep -f "media_processor.py" > /dev/null; then
+  PY_SERVICE_STATUS="active"
+else
+  PY_SERVICE_STATUS="inactive"
+fi
 log_message "Python processor service status: $PY_SERVICE_STATUS"
 
-# Check if the API service is running
-API_SERVICE_STATUS=$(systemctl is-active media-processor-api.service 2>/dev/null || echo "not-found")
+if pgrep -f "api_server.py" > /dev/null; then
+  API_SERVICE_STATUS="active"
+else
+  API_SERVICE_STATUS="inactive"
+fi
 log_message "API service status: $API_SERVICE_STATUS"
 
-# Check if the UI service is running
-UI_SERVICE_STATUS=$(systemctl is-active media-processor-ui.service 2>/dev/null || echo "not-found")
+if pgrep -f "node server.js" > /dev/null; then
+  UI_SERVICE_STATUS="active"
+else
+  UI_SERVICE_STATUS="inactive"
+fi
 log_message "UI service status: $UI_SERVICE_STATUS"
 
 # Check disk space
@@ -172,6 +190,9 @@ else
   API_CONNECTIVITY="curl_missing"
   log_warning "curl not available, skipping API connectivity test."
 fi
+
+# Enable JSON output mode to suppress log messages
+JSON_OUTPUT_MODE=1
 
 # Output as JSON
 cat << EOF
