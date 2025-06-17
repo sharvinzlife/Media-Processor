@@ -648,12 +648,18 @@ class MediaProcessor:
                 lang = str(track.language or "").lower()
                 title = str(getattr(track, 'title', '') or "").lower()
                 
-                # Enhanced Malayalam language detection
-                malayalam_codes = ['mal', 'malayalam', 'ml', 'm']
+                # Enhanced Malayalam language detection with exact matching
+                malayalam_codes = ['mal', 'malayalam', 'ml']
+                malayalam_keywords = ['malayalam', 'malayalee', 'malayali']
                 
                 if preferred_audio_lang == "mal":
                     # For Malayalam: ONLY keep Malayalam audio tracks, exclude ALL others
-                    is_malayalam = any(code in lang for code in malayalam_codes) or any(code in title for code in malayalam_codes)
+                    # Use exact matching for language codes and word boundary matching for keywords
+                    is_malayalam = (
+                        lang in malayalam_codes or 
+                        any(keyword in lang for keyword in malayalam_keywords) or
+                        any(keyword in title for keyword in malayalam_keywords)
+                    )
                     
                     if is_malayalam:
                         audio_tracks_to_keep.append(str(track_id -1))

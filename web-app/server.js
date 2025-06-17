@@ -385,52 +385,52 @@ app.post('/api/file-history', (req, res) => {
   }
 });
 
-// Stats endpoint
+// Stats endpoint - proxy to Python API
 app.get('/api/stats', (req, res) => {
-  try {
-    const statsFilePath = path.join(__dirname, 'api', 'stats.json');
-    
-    // Check if the stats file exists
-    if (!fs.existsSync(statsFilePath)) {
-      // Return empty stats
-      return res.json({
-        success: true,
+  // Forward the request to the Python API server
+  axios.get('http://127.0.0.1:5001/api/media-stats')
+    .then(response => {
+      const data = response.data;
+      
+      if (data.success && data.stats) {
+        // Convert Python API format to web interface format
+        const webStats = {
+          english_movies: data.stats.english_movies || 0,
+          malayalam_movies: data.stats.malayalam_movies || 0,
+          english_tv_shows: data.stats.english_tv || 0,
+          malayalam_tv_shows: data.stats.malayalam_tv || 0
+        };
+        
+        res.json({
+          success: true,
+          stats: webStats
+        });
+      } else {
+        // Return empty stats if Python API fails
+        res.json({
+          success: true,
+          stats: {
+            english_movies: 0,
+            malayalam_movies: 0,
+            english_tv_shows: 0,
+            malayalam_tv_shows: 0
+          }
+        });
+      }
+    })
+    .catch(error => {
+      console.error('Error fetching stats from Python API:', error);
+      res.json({
+        success: false,
         stats: {
           english_movies: 0,
           malayalam_movies: 0,
           english_tv_shows: 0,
-          malayalam_tv_shows: 0,
-          files: []
-        }
+          malayalam_tv_shows: 0
+        },
+        error: error.message
       });
-    }
-    
-    // Read the stats from the file
-    const statsData = JSON.parse(fs.readFileSync(statsFilePath, 'utf8'));
-    
-    res.json({ 
-      success: true, 
-      stats: {
-        english_movies: statsData.english_movies || 0,
-        malayalam_movies: statsData.malayalam_movies || 0,
-        english_tv_shows: statsData.english_tv_shows || 0,
-        malayalam_tv_shows: statsData.malayalam_tv_shows || 0,
-        files: statsData.files || []
-      }
     });
-  } catch (error) {
-    res.json({
-      success: false,
-      stats: {
-        english_movies: 0,
-        malayalam_movies: 0,
-        english_tv_shows: 0,
-        malayalam_tv_shows: 0,
-        files: []
-      },
-      error: error.message
-    });
-  }
 });
 
 // SMB connection test endpoint - disabled due to permission requirements

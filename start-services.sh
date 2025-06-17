@@ -45,6 +45,14 @@ start_if_not_running() {
     fi
 }
 
+# Load environment variables
+if [ -f ".env" ]; then
+    set -a
+    source .env
+    set +a
+    echo "Loaded environment variables from .env"
+fi
+
 # Start Python API server in background
 cd python_core
 start_if_not_running "api_server.py" "Python API Server" "nohup ./venv/bin/python api_server.py" "../logs/api_server.log"

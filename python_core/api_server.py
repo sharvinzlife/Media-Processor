@@ -510,9 +510,9 @@ def get_media_stats():
             media_type = entry.get('type', '').lower()
             language = entry.get('language', '').lower()
             
-            # Only count files that were successfully processed (status = success)
+            # Only count files that were successfully processed (status = success, transferSuccess, or extractionSuccess)
             # and avoid counting the same file multiple times
-            if status == 'success' and filename and filename not in unique_files:
+            if status in ['success', 'transfersuccess', 'extractionsuccess'] and filename and filename not in unique_files:
                 unique_files[filename] = {
                     'type': media_type,
                     'language': language
@@ -520,9 +520,20 @@ def get_media_stats():
         
         # Debug: Log unique files for troubleshooting
         logger.info(f"Found {len(unique_files)} unique successful files")
+        
+        # Count by type and language for debugging
+        debug_counts = {}
         for filename, info in unique_files.items():
-            if info.get('type') == 'movie' and info.get('language') == 'english':
-                logger.info(f"English movie: {filename}")
+            media_type = info.get('type', '').lower()
+            language = info.get('language', '').lower()
+            key = f"{language}_{media_type}"
+            debug_counts[key] = debug_counts.get(key, 0) + 1
+            
+        logger.info(f"Debug counts by type/language: {debug_counts}")
+        
+        # Log some examples
+        for filename, info in list(unique_files.items())[:5]:
+            logger.info(f"Example file: {filename[:50]}... Type: {info.get('type')} Language: {info.get('language')}")
         
         # Count unique successful files
         for file_info in unique_files.values():
@@ -534,7 +545,7 @@ def get_media_stats():
                     stats['malayalam_movies'] += 1
                 else:
                     stats['english_movies'] += 1
-            elif media_type == 'tv':
+            elif media_type in ['tv', 'tvshow']:
                 if language == 'malayalam':
                     stats['malayalam_tv'] += 1
                 else:

@@ -70,7 +70,13 @@ class ConfigManager:
             "english_movie_path": "ENGLISH_MOVIE_PATH",
             "english_tv_path": "ENGLISH_TV_PATH",
             "bollywood_movie_path": "BOLLYWOOD_MOVIE_PATH",
-            "bollywood_tv_path": "BOLLYWOOD_TV_PATH"
+            "bollywood_tv_path": "BOLLYWOOD_TV_PATH",
+            "extract_audio_tracks": "EXTRACT_AUDIO_TRACKS",
+            "extract_subtitles": "EXTRACT_SUBTITLES",
+            "extract_malayalam_only": "EXTRACT_MALAYALAM_ONLY",
+            "preferred_language": "PREFERRED_LANGUAGE",
+            "preferred_audio_langs": "PREFERRED_AUDIO_LANGS",
+            "preferred_subtitle_langs": "PREFERRED_SUBTITLE_LANGS"
         }
         
         for config_key, env_key in env_mapping.items():
