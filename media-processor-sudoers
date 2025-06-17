@@ -1,0 +1,24 @@
+# Allow sharvinzlife user to run specific media processor commands without password
+# This is used by the media-processor web application
+
+# Service control (start, stop, restart)
+sharvinzlife ALL=(ALL) NOPASSWD: /bin/systemctl restart media-processor-py.service
+sharvinzlife ALL=(ALL) NOPASSWD: /bin/systemctl restart media-processor-api.service
+sharvinzlife ALL=(ALL) NOPASSWD: /bin/systemctl restart media-processor-ui.service
+sharvinzlife ALL=(ALL) NOPASSWD: /bin/systemctl start media-processor-py.service
+sharvinzlife ALL=(ALL) NOPASSWD: /bin/systemctl start media-processor-api.service
+sharvinzlife ALL=(ALL) NOPASSWD: /bin/systemctl stop media-processor-py.service
+sharvinzlife ALL=(ALL) NOPASSWD: /bin/systemctl stop media-processor-api.service
+
+# Service status checks
+sharvinzlife ALL=(ALL) NOPASSWD: /bin/systemctl status media-processor-py.service
+sharvinzlife ALL=(ALL) NOPASSWD: /bin/systemctl is-active media-processor-py.service
+sharvinzlife ALL=(ALL) NOPASSWD: /bin/systemctl is-enabled media-processor-py.service
+
+# Log viewing
+sharvinzlife ALL=(ALL) NOPASSWD: /bin/journalctl -u media-processor-py.service -n *
+sharvinzlife ALL=(ALL) NOPASSWD: /bin/journalctl -f -u media-processor-py.service
+sharvinzlife ALL=(ALL) NOPASSWD: /bin/journalctl -f -n * -u media-processor-py.service
+
+# Diagnostics script
+sharvinzlife ALL=(ALL) NOPASSWD: /usr/local/bin/media-processor-diagnostics 

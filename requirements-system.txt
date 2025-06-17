@@ -1,0 +1,42 @@
+# System Package Requirements for Media Processor
+# This file lists all system-level dependencies that need to be installed
+# via the system package manager (apt, yum, dnf, pacman, brew, choco)
+
+[core]
+# Core development tools
+git
+curl
+wget
+
+[runtime]
+# Programming language runtimes
+nodejs>=18.0.0
+npm>=9.0.0  
+python3>=3.8.0
+python3-pip
+python3-venv
+
+[media_processing]
+# Media processing and analysis tools
+ffmpeg
+mediainfo
+mkvtoolnix
+
+[network]
+# Network and file transfer tools
+samba-client  # Linux: smbclient
+samba         # macOS: samba via brew
+# Windows: Built-in SMB support
+
+[development]
+# Development and build tools (optional)
+build-essential  # Linux: gcc, make, etc.
+python3-dev      # Linux: Python development headers
+
+# Platform-specific package names:
+# Ubuntu/Debian: apt install <package>
+# CentOS/RHEL: yum install <package> 
+# Fedora: dnf install <package>
+# Arch: pacman -S <package>
+# macOS: brew install <package>
+# Windows: choco install <package>

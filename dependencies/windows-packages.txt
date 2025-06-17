@@ -1,0 +1,48 @@
+# Windows Chocolatey Packages
+# Package names for Windows using Chocolatey
+
+[chocolatey]
+# Core packages
+git
+curl
+wget
+
+# Programming languages  
+nodejs
+python
+
+# Media processing
+ffmpeg
+mediainfo-cli
+mkvtoolnix
+
+# Development tools (optional)
+visualstudio2022buildtools
+vcredist-all
+
+[wsl_ubuntu]
+# Packages for WSL2 Ubuntu environment
+# Use same packages as Ubuntu/Debian
+git
+curl
+wget
+nodejs
+npm
+python3
+python3-pip
+python3-venv
+python3-dev
+build-essential
+ffmpeg
+mediainfo
+mkvtoolnix
+smbclient
+
+[windows_services]
+# Service management tools
+nssm
+
+[optional]
+# Optional tools
+powershell-core
+windows-terminal
