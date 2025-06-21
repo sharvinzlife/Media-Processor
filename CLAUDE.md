@@ -14,10 +14,12 @@ This is a **Media Processor** system that automatically organizes and transfers 
 
 ### Key Architecture Patterns:
 - **Modular Python Design**: Separated concerns using dedicated modules (config, media detection, API client, file history)
-- **Dual Service Architecture**: Separate services for processing (`media-processor-py.service`) and web UI (`media-processor-ui.service`)
+- **Triple Service Architecture**: Separate services for processing (`media-processor-py.service`), web UI (`media-processor-ui.service`), and API server (`media-processor-api.service`)
 - **Configuration Management**: Unified `.env` configuration with the `ConfigManager` class using python-dotenv
-- **File History Persistence**: Shared file history between Python and Node.js systems
-- **API Integration**: Flask API server for status updates and dashboard communication
+- **Real-time Dashboard**: Live statistics updates with 10-second polling and instant notifications
+- **Database Management System**: SQLite database with comprehensive backup/restore capabilities
+- **File History Persistence**: Shared file history between Python and Node.js systems with database sync
+- **API Integration**: Flask API server for status updates, database operations, and dashboard communication
 
 ## Development Commands
 
@@ -324,13 +326,31 @@ SMB_PROTOCOL_VERSION="SMB2"          # Protocol version (SMB2, SMB3, NT1)
 
 ## Recent Architecture Changes
 
-### v3.3.7 - Dashboard Fixes & System Improvements (Latest)
-- **Dashboard Statistics Fixed**: Corrected zero counts display, now shows actual file counts
-- **Time Display Fixed**: Replaced "just now" with proper relative time formatting ("2h ago", "3d ago")
-- **SMB Diagnostics Enhanced**: Fixed connection testing with proper .env file reading
-- **Missing API Endpoints**: Added `/api/file-history` and `/api/smb-settings` endpoints
-- **Service Log Commands**: Updated journalctl commands for proper log viewing
-- **Sync Statistics**: Created sync-stats.js for real-time dashboard data synchronization
+### v3.3.6 - Real-time Dashboard & Database Management System (Latest)
+- **Real-time Statistics Updates**: Dashboard automatically refreshes when new media is processed with 10-second polling
+- **Comprehensive Database Management**: SQLite database with full backup/restore system and health monitoring
+- **Frontend Database Interface**: Web-based backup/restore controls integrated into Settings tab
+- **Live Polling System**: Adaptive frequency polling with activity detection and visibility-based optimization
+- **Time Formatting Fix**: Proper relative timestamps (1h ago, 2d ago) replaced "Just now" displays throughout interface
+- **Visual Feedback**: Toast notifications for new media files, animated updates, and status indicators
+- **Database Health Monitoring**: Real-time integrity checks, performance metrics, and automatic recovery
+- **Automatic Data Sync**: Synchronizes database from JSON files and history sources with conflict resolution
+- **Hourglass Symbol Removal**: Replaced ⏳ symbols with appropriate alternatives (📁, 🔄, ⏸️)
+
+#### Key Files Added:
+- `python_core/database_manager.py`: Comprehensive database management with backup/restore/sync
+- `python_core/modules/database/media_database.py`: SQLite schema and operations
+- `web-app/build/database_manager_ui.js`: Frontend database management interface
+- `web-app/build/realtime_updates.js`: Live dashboard updates and notifications
+- `web-app/build/time_formatter_fix.js`: Time formatting and symbol cleanup
+- `web-app/build/fix_stats_display.js`: Targeted statistics display fixes
+
+#### API Endpoints Added:
+- `/api/database/backup` (POST) - Create compressed database backups
+- `/api/database/restore` (POST) - Restore from backup with verification
+- `/api/database/backups` (GET) - List available backups with metadata
+- `/api/database/health` (GET) - Database health and integrity checks
+- `/api/database/sync` (POST) - Sync database from all data sources
 
 ### v3.3.1 - Enhanced Malayalam Processing & SMB Authentication
 - **Malayalam-Only Track Extraction**: Extract only Malayalam audio + English subtitles, delete all other tracks

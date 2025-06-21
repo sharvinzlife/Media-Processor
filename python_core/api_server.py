@@ -18,6 +18,12 @@ except ImportError:
     print("pip install flask flask-cors psutil")
     exit(1)
 
+# Import database manager
+try:
+    from database_manager import DatabaseManager
+except ImportError:
+    DatabaseManager = None
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -35,6 +41,7 @@ CORS(app)  # Enable CORS for all routes
 # Configuration
 CONFIG_PATH = "/etc/media-processor/config.json"
 FILE_HISTORY_PATH = "/var/lib/media-processor/file_history.json"
+STATS_JSON_PATH = "/home/sharvinzlife/media-processor/web-app/api/stats.json"
 
 def load_config() -> Dict:
     """Load configuration from JSON file"""
@@ -490,7 +497,28 @@ def diagnose_smb():
 def get_media_stats():
     """Get media library statistics"""
     try:
-        config = load_config()
+        # Read directly from the stats.json file that has the correct data
+        if os.path.exists(STATS_JSON_PATH):
+            with open(STATS_JSON_PATH, 'r') as f:
+                data = json.load(f)
+                
+            # Extract stats in the format expected by the web interface
+            stats = {
+                'english_movies': data.get('english_movies', 0),
+                'malayalam_movies': data.get('malayalam_movies', 0),
+                'english_tv': data.get('english_tv_shows', 0),  # Note: different naming
+                'malayalam_tv': data.get('malayalam_tv_shows', 0)  # Note: different naming
+            }
+            
+            logger.info(f"Loaded stats from {STATS_JSON_PATH}: {stats}")
+            return jsonify({
+                'success': True,
+                'stats': stats
+            })
+        
+        # Fallback to file history if stats.json doesn't exist
+        logger.warning(f"Stats file {STATS_JSON_PATH} not found, falling back to file history")
+        
         stats = {
             'english_movies': 0,
             'malayalam_movies': 0,
@@ -638,6 +666,187 @@ def run_diagnostics():
         })
     except Exception as e:
         logger.error(f"Error running diagnostics: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        })
+
+@app.route('/api/database/backup', methods=['POST'])
+def create_database_backup():
+    """Create database backup"""
+    try:
+        if not DatabaseManager:
+            return jsonify({
+                'success': False,
+                'error': 'Database manager not available'
+            })
+        
+        db_manager = DatabaseManager()
+        data = request.json or {}
+        backup_type = data.get('type', 'manual')
+        compress = data.get('compress', True)
+        
+        backup_path = db_manager.create_backup(backup_type, compress)
+        
+        if backup_path:
+            # Get backup info
+            import os
+            file_size = os.path.getsize(backup_path)
+            
+            return jsonify({
+                'success': True,
+                'backup_path': backup_path,
+                'file_size': file_size,
+                'message': f'Backup created successfully: {os.path.basename(backup_path)}'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Failed to create backup'
+            })
+            
+    except Exception as e:
+        logger.error(f"Error creating backup: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        })
+
+@app.route('/api/database/restore', methods=['POST'])
+def restore_database_backup():
+    """Restore database from backup"""
+    try:
+        if not DatabaseManager:
+            return jsonify({
+                'success': False,
+                'error': 'Database manager not available'
+            })
+        
+        data = request.json or {}
+        backup_path = data.get('backup_path')
+        
+        if not backup_path:
+            return jsonify({
+                'success': False,
+                'error': 'Backup path is required'
+            })
+        
+        db_manager = DatabaseManager()
+        success = db_manager.restore_backup(backup_path)
+        
+        if success:
+            return jsonify({
+                'success': True,
+                'message': f'Database restored successfully from {os.path.basename(backup_path)}'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Failed to restore database'
+            })
+            
+    except Exception as e:
+        logger.error(f"Error restoring backup: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        })
+
+@app.route('/api/database/backups', methods=['GET'])
+def list_database_backups():
+    """List available database backups"""
+    try:
+        if not DatabaseManager:
+            return jsonify({
+                'success': False,
+                'error': 'Database manager not available'
+            })
+        
+        db_manager = DatabaseManager()
+        backups = []
+        
+        # Get backups from backup directory
+        backup_dir = db_manager.backup_dir
+        if backup_dir.exists():
+            for backup_file in backup_dir.glob('media_processor_backup_*.db*'):
+                stat = backup_file.stat()
+                backups.append({
+                    'path': str(backup_file),
+                    'name': backup_file.name,
+                    'size': stat.st_size,
+                    'created_at': datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                    'type': 'auto' if '_auto_' in backup_file.name else 'manual'
+                })
+        
+        # Sort by creation time, newest first
+        backups.sort(key=lambda x: x['created_at'], reverse=True)
+        
+        return jsonify({
+            'success': True,
+            'backups': backups
+        })
+            
+    except Exception as e:
+        logger.error(f"Error listing backups: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        })
+
+@app.route('/api/database/health', methods=['GET'])
+def database_health_check():
+    """Get database health status"""
+    try:
+        if not DatabaseManager:
+            return jsonify({
+                'success': False,
+                'error': 'Database manager not available'
+            })
+        
+        db_manager = DatabaseManager()
+        health = db_manager.health_check()
+        
+        return jsonify({
+            'success': True,
+            'health': health
+        })
+            
+    except Exception as e:
+        logger.error(f"Error checking database health: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        })
+
+@app.route('/api/database/sync', methods=['POST'])
+def sync_database():
+    """Sync database from data sources"""
+    try:
+        if not DatabaseManager:
+            return jsonify({
+                'success': False,
+                'error': 'Database manager not available'
+            })
+        
+        db_manager = DatabaseManager()
+        success = db_manager.sync_data_sources()
+        
+        if success:
+            # Export updated stats
+            db_manager.export_statistics_to_json()
+            
+            return jsonify({
+                'success': True,
+                'message': 'Database synchronized successfully'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Failed to sync database'
+            })
+            
+    except Exception as e:
+        logger.error(f"Error syncing database: {e}")
         return jsonify({
             'success': False,
             'error': str(e)

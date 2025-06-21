@@ -2061,6 +2061,113 @@
       100% { transform: scale(1) rotate(360deg); }
     }
   </style>
+  <!-- Dashboard Frontend Fix -->
+  <script>
+    // Comprehensive dashboard frontend fix - addresses caching and data loading issues
+    console.log('🔧 Loading dashboard frontend fixes...');
+    
+    // Force cache busting for all API calls
+    const originalFetch = window.fetch;
+    window.fetch = function(url, options = {}) {
+        if (url.includes('/api/')) {
+            const separator = url.includes('?') ? '&' : '?';
+            url = `${url}${separator}_t=${Date.now()}`;
+            options.headers = {
+                ...options.headers,
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0'
+            };
+        }
+        return originalFetch(url, options);
+    };
+    
+    // Enhanced time formatting
+    function formatRelativeTime(timestamp) {
+        if (!timestamp) return 'Unknown time';
+        try {
+            const now = new Date();
+            const date = new Date(timestamp);
+            if (isNaN(date.getTime())) return 'Invalid date';
+            
+            const diffMs = now - date;
+            const diffMinutes = Math.floor(diffMs / (1000 * 60));
+            const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+            const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+            
+            if (diffMinutes < 1) return '< 1m ago';
+            if (diffMinutes < 60) return `${diffMinutes}m ago`;
+            if (diffHours < 24) return `${diffHours}h ago`;
+            if (diffDays < 7) return `${diffDays}d ago`;
+            return date.toLocaleDateString();
+        } catch (error) {
+            return 'Time error';
+        }
+    }
+    
+    // Dashboard stats loader with robust element finding
+    async function loadDashboardStats() {
+        console.log('📊 Loading dashboard statistics...');
+        try {
+            const response = await fetch('/api/stats');
+            const data = await response.json();
+            
+            if (data.success && data.stats) {
+                console.log('✅ Stats loaded:', data.stats);
+                
+                // Update stats by finding elements through multiple methods
+                setTimeout(() => {
+                    updateStatsByContent('English Movies', data.stats.english_movies || 0);
+                    updateStatsByContent('Malayalam Movies', data.stats.malayalam_movies || 0);
+                    updateStatsByContent('English TV Shows', data.stats.english_tv_shows || 0);
+                    updateStatsByContent('Malayalam TV Shows', data.stats.malayalam_tv_shows || 0);
+                }, 100);
+            }
+        } catch (error) {
+            console.error('❌ Error loading stats:', error);
+        }
+    }
+    
+    function updateStatsByContent(label, value) {
+        // Find elements by searching for text content
+        const allElements = document.querySelectorAll('*');
+        for (const el of allElements) {
+            if (el.textContent && el.textContent.includes(label)) {
+                // Look for nearby metric value elements
+                const parent = el.closest('.card, .metric-card, .stat-item, .dashboard-item');
+                if (parent) {
+                    const valueEl = parent.querySelector('.metric-value') || 
+                                   parent.querySelector('.stat-value') ||
+                                   parent.querySelector('h1, h2, h3') ||
+                                   parent.querySelector('.display-4, .display-5');
+                    if (valueEl && valueEl.textContent.match(/^\d+$/)) {
+                        valueEl.textContent = value;
+                        console.log(`✅ Updated ${label}: ${value}`);
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    
+    // Initialize when DOM is ready
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('🚀 Dashboard fixes initialized');
+        
+        // Load data immediately
+        loadDashboardStats();
+        
+        // Set up auto-refresh
+        setInterval(loadDashboardStats, 30000);
+        
+        // Refresh when page becomes visible
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                loadDashboardStats();
+            }
+        });
+    });
+  </script>
 </head>
 <body>
   <header class="header">
@@ -2155,7 +2262,7 @@
                     <tbody id="file-history-table-body">
                       <tr id="file-history-loading">
                         <td colspan="4" class="text-center py-4">
-                          <span style="font-size:2rem;">⏳</span> <span class="ms-2">Loading recent media files...</span>
+                          <span style="font-size:2rem;">📁</span> <span class="ms-2">Loading recent media files...</span>
                         </td>
                       </tr>
                       <tr id="file-history-error" style="display:none;">
@@ -4280,7 +4387,7 @@
         const diffDays = Math.floor(diffMs / 86400000);
         
         if (diffMin < 1) {
-          return 'Just now';
+          return '< 1m ago';
         } else if (diffMin < 60) {
           return `${diffMin}m ago`;
         } else if (diffHours < 24) {
@@ -4333,7 +4440,7 @@
       // Use enhanced emojis and display name from backend
       const typeEmoji = file.typeEmoji || (file.type === 'movie' ? '🎬' : file.type === 'tvshow' ? '📺' : '🎞️');
       const langEmoji = file.langEmoji || (file.language === 'malayalam' ? '🇮🇳' : file.language === 'english' ? '🇺🇸' : '🌐');
-      const statusEmoji = file.statusEmoji || (file.status === 'success' ? '✅' : file.status === 'processing' ? '⏳' : file.status === 'failed' ? '❌' : '❓');
+      const statusEmoji = file.statusEmoji || (file.status === 'success' ? '✅' : file.status === 'processing' ? '🔄' : file.status === 'failed' ? '❌' : '❓');
       const displayName = file.displayName || file.name || 'Unknown file';
       
       // Create enhanced display with multiple emojis and animations
@@ -4900,5 +5007,17 @@
       });
     }
   </script>
+  
+  <!-- Statistics Display Fix Script -->
+  <script src="fix_stats_display.js"></script>
+  
+  <!-- Database Manager UI -->
+  <script src="database_manager_ui.js"></script>
+  
+  <!-- Real-time Updates System -->
+  <script src="realtime_updates.js"></script>
+  
+  <!-- Time Formatter Fix -->
+  <script src="time_formatter_fix.js"></script>
 </body>
 </html>

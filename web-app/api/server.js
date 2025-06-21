@@ -50,15 +50,10 @@ function loadStats() {
   try {
     const data = fs.readFileSync(statsPath, 'utf8');
     const stats = JSON.parse(data);
-    // Ensure all keys exist
-    return Object.assign({
-      english_movies: 0,
-      malayalam_movies: 0,
-      english_tv_shows: 0,
-      malayalam_tv_shows: 0,
-      files: []
-    }, stats);
+    // Return the stats exactly as they are in the file
+    return stats;
   } catch (e) {
+    console.error('Error parsing stats.json:', e);
     return { english_movies: 0, malayalam_movies: 0, english_tv_shows: 0, malayalam_tv_shows: 0, files: [] };
   }
 }
@@ -71,8 +66,38 @@ function saveStats(stats) {
 
 // API: Get stats and file history
 app.get('/api/stats', (req, res) => {
-  const stats = loadStats();
-  res.json({ success: true, stats });
+  // Force fresh read from file
+  console.log('Reading stats from:', statsPath);
+  
+  try {
+    // Read directly from file to bypass any caching
+    const data = fs.readFileSync(statsPath, 'utf8');
+    const stats = JSON.parse(data);
+    
+    console.log('Stats loaded from file:', {
+      english_movies: stats.english_movies,
+      malayalam_movies: stats.malayalam_movies,
+      malayalam_tv_shows: stats.malayalam_tv_shows,
+      files_count: stats.files ? stats.files.length : 0
+    });
+    
+    res.json({ 
+      success: true, 
+      stats: {
+        english_movies: stats.english_movies || 0,
+        malayalam_movies: stats.malayalam_movies || 0,
+        english_tv_shows: stats.english_tv_shows || 0,
+        malayalam_tv_shows: stats.malayalam_tv_shows || 0
+      } 
+    });
+  } catch (error) {
+    console.error('Error reading stats:', error);
+    res.json({ 
+      success: false, 
+      error: 'Failed to read stats',
+      stats: { english_movies: 0, malayalam_movies: 0, english_tv_shows: 0, malayalam_tv_shows: 0 }
+    });
+  }
 });
 
 // API: Add processed file (expects { name, type, language, processedAt })

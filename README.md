@@ -24,10 +24,33 @@
 
 > **🚀 Works seamlessly with JDownloader, Plex, Jellyfin, Emby, Kodi, and any download folder**
 
-## 🆕 Latest Updates (v3.3.1)
+## 🆕 Latest Updates (v3.3.6)
 
-### Enhanced Malayalam Processing & SMB Authentication
-Major enhancements to Malayalam content processing and connectivity:
+### 📊 Real-time Dashboard & Database Management System
+Complete dashboard overhaul with comprehensive database management:
+
+#### 🎯 Smart Dashboard Features
+- **Real-time statistics** - Dashboard updates automatically when media is processed
+- **Instant notifications** - Toast notifications for new media files
+- **Live polling** - 10-second updates with adaptive frequency based on activity
+- **Cache-busting** - Ensures fresh data with no stale statistics
+- **Proper time formatting** - Shows accurate relative timestamps (1h ago, 2d ago)
+
+#### 🗄️ Comprehensive Database Management
+- **One-click backups** - Create compressed database backups instantly
+- **Restore functionality** - Restore from any previous backup with verification
+- **Health monitoring** - Real-time database integrity and performance metrics
+- **Automatic sync** - Synchronizes data from all sources (JSON files, history)
+- **Backup history** - Track all backups with sizes, dates, and checksums
+
+#### ⚡ Enhanced User Experience
+- **Frontend database interface** - Full backup/restore controls in web dashboard
+- **Visual feedback** - Animated updates and status indicators
+- **Error handling** - Robust error reporting and recovery
+- **Performance optimization** - Intelligent polling and memory management
+
+### Enhanced Malayalam Processing & SMB Authentication (v3.3.1)
+Previous major enhancements to Malayalam content processing and connectivity:
 
 #### 🎬 Malayalam-Only Track Extraction
 - **Extract ONLY Malayalam audio + English subtitles** - Removes ALL other tracks (Hindi, Tamil, Telugu, etc.)
