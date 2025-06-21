@@ -64,6 +64,10 @@ sudo systemctl status media-processor-ui.service
 journalctl -u media-processor-py.service -f
 journalctl -u media-processor-ui.service -f
 
+# Alternative log commands for continuous monitoring
+sudo journalctl -f -u media-processor-py.service
+sudo journalctl -f -u media-processor-ui.service
+
 # Restart services
 sudo systemctl restart media-processor-py.service
 sudo systemctl restart media-processor-ui.service
@@ -319,6 +323,14 @@ SMB_PROTOCOL_VERSION="SMB2"          # Protocol version (SMB2, SMB3, NT1)
 ```
 
 ## Recent Architecture Changes
+
+### v3.3.7 - Dashboard Fixes & System Improvements (Latest)
+- **Dashboard Statistics Fixed**: Corrected zero counts display, now shows actual file counts
+- **Time Display Fixed**: Replaced "just now" with proper relative time formatting ("2h ago", "3d ago")
+- **SMB Diagnostics Enhanced**: Fixed connection testing with proper .env file reading
+- **Missing API Endpoints**: Added `/api/file-history` and `/api/smb-settings` endpoints
+- **Service Log Commands**: Updated journalctl commands for proper log viewing
+- **Sync Statistics**: Created sync-stats.js for real-time dashboard data synchronization
 
 ### v3.3.1 - Enhanced Malayalam Processing & SMB Authentication
 - **Malayalam-Only Track Extraction**: Extract only Malayalam audio + English subtitles, delete all other tracks

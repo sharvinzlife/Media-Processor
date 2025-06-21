@@ -510,9 +510,9 @@ def get_media_stats():
             media_type = entry.get('type', '').lower()
             language = entry.get('language', '').lower()
             
-            # Only count files that were successfully processed (status = success, transferSuccess, or extractionSuccess)
+            # Only count files that were successfully processed (status = success)
             # and avoid counting the same file multiple times
-            if status in ['success', 'transfersuccess', 'extractionsuccess'] and filename and filename not in unique_files:
+            if status in ['success'] and filename and filename not in unique_files:
                 unique_files[filename] = {
                     'type': media_type,
                     'language': language

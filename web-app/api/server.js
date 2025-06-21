@@ -32,7 +32,7 @@ app.use(express.json());
 const statsPath = path.join(__dirname, 'stats.json'); // Single source of truth
 
 // Path to main config file
-const configPath = process.env.CONFIG_PATH || path.join(__dirname, '../../lib/config.sh');
+const configPath = process.env.CONFIG_PATH || path.join(__dirname, '../../.env');
 
 // Helper to load stats (init if missing)
 function loadStats() {
@@ -288,7 +288,68 @@ app.get('/api/logs', (req, res) => {
   });
 });
 
-// Get settings from the script - updated to read from config.sh
+// Get system logs from journalctl as fallback
+app.get('/api/system-logs', (req, res) => {
+  // Try multiple service names
+  const serviceNames = ['media-processor-py.service', 'media-processor.service'];
+  
+  function tryService(index) {
+    if (index >= serviceNames.length) {
+      return res.status(500).json({
+        success: false,
+        error: 'No media processor service found',
+        details: 'Tried: ' + serviceNames.join(', ')
+      });
+    }
+    
+    const serviceName = serviceNames[index];
+    exec(`journalctl -u ${serviceName} -n 50 --no-pager`, (error, stdout, stderr) => {
+      if (error) {
+        // Try next service name
+        tryService(index + 1);
+      } else {
+        // Split the output into lines
+        const logs = stdout.trim().split('\n').filter(line => line.trim() !== '');
+        res.json({ success: true, logs, service: serviceName });
+      }
+    });
+  }
+  
+  tryService(0);
+});
+
+// Get SMB settings endpoint
+app.get('/api/smb-settings', (req, res) => {
+  fs.readFile(configPath, 'utf8', (err, data) => {
+    if (err) {
+      return res.status(500).json({ success: false, error: 'Failed to read config file' });
+    }
+    
+    const settings = {};
+    // Extract SMB settings from .env file
+    const smbSettings = ['SMB_SERVER', 'SMB_SHARE', 'SMB_USERNAME', 'SMB_PASSWORD'];
+    
+    smbSettings.forEach(key => {
+      const regex = new RegExp(`^${key}=["']?([^"'#]*)["']?`, 'm');
+      const match = data.match(regex);
+      if (match) {
+        if (key === 'SMB_USERNAME') {
+          settings.username = match[1].trim();
+        } else if (key === 'SMB_SERVER') {
+          settings.server = match[1].trim();
+        } else if (key === 'SMB_SHARE') {
+          settings.share = match[1].trim();
+        } else if (key === 'SMB_PASSWORD') {
+          settings.password = match[1].trim();
+        }
+      }
+    });
+    
+    res.json({ success: true, settings });
+  });
+});
+
+// Get settings from the .env file
 app.get('/api/settings', (req, res) => {
   fs.readFile(configPath, 'utf8', (err, data) => {
     if (err) {
@@ -301,7 +362,7 @@ app.get('/api/settings', (req, res) => {
       'LOG_FILE',
       'SMB_SERVER',
       'SMB_SHARE',
-      'SMB_USER',
+      'SMB_USERNAME',
       'SMB_PASSWORD',
       'SMB_AUTH_METHOD',
       'DRY_RUN',
@@ -314,12 +375,11 @@ app.get('/api/settings', (req, res) => {
       'PREFERRED_AUDIO_LANGS',
       'PREFERRED_SUBTITLE_LANGS',
       'CLEANUP_RAR_FILES',
-      'CLEANUP_EMPTY_DIRS',
-      'MIN_RAR_AGE_HOURS'
+      'CLEANUP_EMPTY_DIRS'
     ];
     
     configLines.forEach(key => {
-      const regex = new RegExp(`${key}=["']?([^"'#]*)["']?`);
+      const regex = new RegExp(`^${key}=["']?([^"'#]*)["']?`, 'm');
       const match = data.match(regex);
       if (match) {
         settings[key] = match[1].trim();
@@ -406,11 +466,11 @@ app.post('/api/diagnose-smb', (req, res) => {
     try {
       const data = fs.readFileSync(configPath, 'utf8');
       
-      // Extract SMB settings
-      const smbServerMatch = data.match(/SMB_SERVER=["']?([^"'#]*)["']?/);
-      const smbShareMatch = data.match(/SMB_SHARE=["']?([^"'#]*)["']?/);
-      const smbUserMatch = data.match(/SMB_USER=["']?([^"'#]*)["']?/);
-      const smbPasswordMatch = data.match(/SMB_PASSWORD=["']?([^"'#]*)["']?/);
+      // Extract SMB settings from .env file
+      const smbServerMatch = data.match(/^SMB_SERVER=["']?([^"'#]*)["']?/m);
+      const smbShareMatch = data.match(/^SMB_SHARE=["']?([^"'#]*)["']?/m);
+      const smbUserMatch = data.match(/^SMB_USERNAME=["']?([^"'#]*)["']?/m);
+      const smbPasswordMatch = data.match(/^SMB_PASSWORD=["']?([^"'#]*)["']?/m);
       
       smbServer = smbServerMatch ? smbServerMatch[1].trim() : '';
       smbShare = smbShareMatch ? smbShareMatch[1].trim() : '';
@@ -779,6 +839,47 @@ app.get('/api/smb-permissions', (req, res) => {
       hasAnyPermission: hasAnyPermission,
       directories: results
     });
+  });
+});
+
+// File history endpoint
+app.get('/api/file-history', (req, res) => {
+  const stats = loadStats();
+  
+  // Process files to ensure proper date formatting
+  const processedFiles = (stats.files || []).map(file => {
+    let processedAt = file.processedAt;
+    
+    // If it's a timestamp string, ensure it's formatted properly
+    if (processedAt && typeof processedAt === 'string') {
+      try {
+        // Parse the date and format it properly
+        const date = new Date(processedAt);
+        if (isNaN(date.getTime())) {
+          // If date is invalid, use current time
+          processedAt = new Date().toISOString();
+        } else {
+          processedAt = date.toISOString();
+        }
+      } catch (e) {
+        // If parsing fails, use current time
+        processedAt = new Date().toISOString();
+      }
+    } else {
+      // If no processedAt date, use current time
+      processedAt = new Date().toISOString();
+    }
+    
+    return {
+      ...file,
+      processedAt: processedAt
+    };
+  });
+  
+  res.json({
+    success: true,
+    history: processedFiles,
+    total: processedFiles.length
   });
 });
 

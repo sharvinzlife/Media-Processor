@@ -2808,40 +2808,78 @@
         updateStatusUI(data.status);
       });
 
-      // Load logs
+      // Load logs with enhanced error handling and fallback options
       function loadLogs() {
         const logsContainer = document.getElementById('logs-content');
         if (!logsContainer) return;
         
         logsContainer.innerHTML = '<div class="text-center my-5"><div class="spinner-border text-primary" role="status"></div><p class="mt-3">Loading logs...</p></div>';
         
+        // Try Python API first, then fallback to local log files
         fetch('/api/logs')
-          .then(response => response.json())
+          .then(response => {
+            if (!response.ok) {
+              throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+          })
           .then(data => {
-            if (data.success) {
+            console.log('Logs API response:', data);
+            if (data.success && data.logs) {
               const logs = data.logs;
               if (logs.length === 0) {
                 logsContainer.innerHTML = '<div class="alert alert-info">No logs available. The service might not have generated any logs yet.</div>';
               } else {
                 let logsHtml = '<div class="logs-output">';
-                logs.forEach(log => {
-                  logsHtml += `<div class="log-line">${log}</div>`;
+                logs.forEach((log, index) => {
+                  // Handle both string logs and object logs
+                  const logText = typeof log === 'string' ? log : JSON.stringify(log);
+                  logsHtml += `<div class="log-line">${logText}</div>`;
                 });
                 logsHtml += '</div>';
                 logsContainer.innerHTML = logsHtml;
                 
                 // Scroll to bottom
-                const logsOutput = logsContainer.querySelector('.logs-output');
-                if (logsOutput) {
-                  logsOutput.scrollTop = logsOutput.scrollHeight;
-                }
+                setTimeout(() => {
+                  const logsOutput = logsContainer.querySelector('.logs-output');
+                  if (logsOutput) {
+                    logsOutput.scrollTop = logsOutput.scrollHeight;
+                  }
+                }, 100);
               }
             } else {
-              logsContainer.innerHTML = `<div class="alert alert-danger">Failed to load logs: ${data.error || 'Unknown error'}</div>`;
+              throw new Error(data.error || 'API returned unsuccessful response');
             }
           })
           .catch(error => {
-            logsContainer.innerHTML = `<div class="alert alert-danger">Error loading logs: ${error.message || 'Unknown error'}</div>`;
+            console.error('Error loading logs from Python API:', error);
+            
+            // Fallback: try to get logs from systemd journal
+            fetch('/api/system-logs')
+              .then(response => response.json())
+              .then(data => {
+                if (data.success && data.logs) {
+                  let logsHtml = '<div class="logs-output"><div class="alert alert-warning">Note: Showing system logs (Python API logs unavailable)</div>';
+                  data.logs.forEach(log => {
+                    logsHtml += `<div class="log-line">${log}</div>`;
+                  });
+                  logsHtml += '</div>';
+                  logsContainer.innerHTML = logsHtml;
+                } else {
+                  throw new Error('System logs also unavailable');
+                }
+              })
+              .catch(fallbackError => {
+                console.error('Fallback logs also failed:', fallbackError);
+                logsContainer.innerHTML = `
+                  <div class="alert alert-danger">
+                    <h6>Unable to load logs</h6>
+                    <p><strong>Primary error:</strong> ${error.message}</p>
+                    <p><strong>Fallback error:</strong> ${fallbackError.message}</p>
+                    <p class="mb-0"><small>Check if the media processor service is running and the log files are accessible.</small></p>
+                  </div>
+                `;
+              });
           });
       }
 
@@ -3387,33 +3425,92 @@
         });
       });
 
-      // Fetch and display stats from Node.js API (more accurate)
+      // Fetch and display stats calculated from file history
       function loadStatsAndHistory() {
-        // Use Node.js stats which tracks unique successful files properly
-        fetch('/api/stats')
+        // Load file history first and calculate stats from it
+        fetch('/api/file-history')
           .then(res => res.json())
           .then(data => {
-            if (data.success) {
-              console.log('Loaded stats from Node.js API:', data.stats);
-              const stats = data.stats || { 
+            if (data.success && data.history) {
+              console.log('Loaded file history for stats calculation:', data.history.length, 'entries');
+              
+              // Calculate stats from file history
+              const stats = { 
                 english_movies: 0, 
                 malayalam_movies: 0, 
                 english_tv_shows: 0, 
                 malayalam_tv_shows: 0
               };
               
+              // Use a Set to track unique successful files only
+              const uniqueSuccessfulFiles = new Set();
+              
+              data.history.forEach(file => {
+                // Map statuses first
+                const statusMap = {
+                  'transferStart': 'processing',
+                  'transferSuccess': 'success', 
+                  'transferFailed': 'failed',
+                  'transferError': 'failed',
+                  'extractionStart': 'processing',
+                  'extractionSuccess': 'processing',
+                  'extractionFailed': 'failed',
+                  'extractionError': 'failed',
+                  'processing': 'processing',
+                  'success': 'success',
+                  'failed': 'failed',
+                  'error': 'failed'
+                };
+                
+                const mappedStatus = statusMap[file.status] || file.status || 'unknown';
+                
+                // Only count files that were successfully processed
+                if (mappedStatus === 'success' && file.name && file.type && file.language) {
+                  const fileKey = `${file.name}_${file.type}_${file.language}`;
+                  
+                  if (!uniqueSuccessfulFiles.has(fileKey)) {
+                    uniqueSuccessfulFiles.add(fileKey);
+                    
+                    // Count by type and language
+                    if (file.type === 'movie') {
+                      if (file.language === 'malayalam') {
+                        stats.malayalam_movies++;
+                      } else if (file.language === 'english') {
+                        stats.english_movies++;
+                      }
+                    } else if (file.type === 'tvshow' || file.type === 'tv') {
+                      if (file.language === 'malayalam') {
+                        stats.malayalam_tv_shows++;
+                      } else if (file.language === 'english') {
+                        stats.english_tv_shows++;
+                      }
+                    }
+                  }
+                }
+              });
+              
+              console.log('Calculated stats:', stats);
+              console.log('Unique successful files:', uniqueSuccessfulFiles.size);
+              
               // Update stats counters with animation
-              updateCounterWithAnimation('english-movies-count', stats.english_movies || 0);
-              updateCounterWithAnimation('malayalam-movies-count', stats.malayalam_movies || 0);
-              updateCounterWithAnimation('english-tv-count', stats.english_tv_shows || 0);
-              updateCounterWithAnimation('malayalam-tv-count', stats.malayalam_tv_shows || 0);
+              updateCounterWithAnimation('english-movies-count', stats.english_movies);
+              updateCounterWithAnimation('malayalam-movies-count', stats.malayalam_movies);
+              updateCounterWithAnimation('english-tv-count', stats.english_tv_shows);
+              updateCounterWithAnimation('malayalam-tv-count', stats.malayalam_tv_shows);
               
               // Trigger file history load (ensures file list is updated)
               loadFileHistory();
+            } else {
+              console.error('Failed to load file history for stats:', data);
+              // Show zero stats if API is unavailable
+              updateCounterWithAnimation('english-movies-count', 0);
+              updateCounterWithAnimation('malayalam-movies-count', 0);
+              updateCounterWithAnimation('english-tv-count', 0);
+              updateCounterWithAnimation('malayalam-tv-count', 0);
             }
           })
           .catch(error => {
-            console.error('Error loading stats from Node.js API:', error);
+            console.error('Error loading file history for stats:', error);
             // Show zero stats if API is unavailable
             updateCounterWithAnimation('english-movies-count', 0);
             updateCounterWithAnimation('malayalam-movies-count', 0);
@@ -4163,14 +4260,28 @@
     // Function to format dates in a more compact way
     function formatDate(dateString) {
       try {
+        // Handle null, undefined, or empty values
+        if (!dateString || dateString === 'N/A' || dateString === '') {
+          return 'Unknown';
+        }
+        
         const date = new Date(dateString);
+        
+        // Check if date is valid
+        if (isNaN(date.getTime())) {
+          console.warn('Invalid date string received:', dateString);
+          return 'Invalid Date';
+        }
+        
         const now = new Date();
         const diffMs = now - date;
         const diffMin = Math.floor(diffMs / 60000);
         const diffHours = Math.floor(diffMs / 3600000);
         const diffDays = Math.floor(diffMs / 86400000);
         
-        if (diffMin < 60) {
+        if (diffMin < 1) {
+          return 'Just now';
+        } else if (diffMin < 60) {
           return `${diffMin}m ago`;
         } else if (diffHours < 24) {
           return `${diffHours}h ago`;
@@ -4180,7 +4291,8 @@
           return date.toLocaleDateString();
         }
       } catch (error) {
-        return dateString;
+        console.error('Error formatting date:', error, 'Input:', dateString);
+        return dateString || 'Unknown';
       }
     }
 
@@ -4189,14 +4301,39 @@
       const row = document.createElement('tr');
       row.className = 'file-history-row';
       
+      // Map statuses from backend to user-friendly names
+      const statusMap = {
+        'transferStart': 'processing',
+        'transferSuccess': 'success', 
+        'transferFailed': 'failed',
+        'transferError': 'failed',
+        'extractionStart': 'processing',
+        'extractionSuccess': 'processing',
+        'extractionFailed': 'failed',
+        'extractionError': 'failed',
+        'processing': 'processing',
+        'success': 'success',
+        'failed': 'failed',
+        'error': 'failed'
+      };
+      
+      // Apply status mapping
+      const mappedStatus = statusMap[file.status] || file.status || 'unknown';
+      file.status = mappedStatus;
+      
+      // Fix missing processedAt dates
+      if (!file.processedAt || file.processedAt === '' || file.processedAt === 'N/A') {
+        file.processedAt = new Date().toISOString();
+      }
+      
       // Name cell with enhanced emojis from backend
       const nameCell = document.createElement('td');
       nameCell.className = 'file-name-cell file-history-cell';
       
       // Use enhanced emojis and display name from backend
-      const typeEmoji = file.typeEmoji || '🎬';
-      const langEmoji = file.langEmoji || '🌐';
-      const statusEmoji = file.statusEmoji || '⏳';
+      const typeEmoji = file.typeEmoji || (file.type === 'movie' ? '🎬' : file.type === 'tvshow' ? '📺' : '🎞️');
+      const langEmoji = file.langEmoji || (file.language === 'malayalam' ? '🇮🇳' : file.language === 'english' ? '🇺🇸' : '🌐');
+      const statusEmoji = file.statusEmoji || (file.status === 'success' ? '✅' : file.status === 'processing' ? '⏳' : file.status === 'failed' ? '❌' : '❓');
       const displayName = file.displayName || file.name || 'Unknown file';
       
       // Create enhanced display with multiple emojis and animations

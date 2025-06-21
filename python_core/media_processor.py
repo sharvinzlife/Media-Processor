@@ -48,8 +48,8 @@ class MediaProcessor:
         history_file = self.config.get("file_history_path", "/home/sharvinzlife/media-processor/file_history.json")
         self.file_history = FileHistoryManager(history_file)
         
-        # Initialize media detector
-        self.media_detector = MediaDetector()
+        # Initialize media detector with configuration
+        self.media_detector = MediaDetector(self.config)
         
         # Initialize API client
         self.api_client = DashboardApiClient(
@@ -173,12 +173,12 @@ class MediaProcessor:
                 # Update size_bytes if file has changed
                 size_bytes = os.path.getsize(file_to_process)
                 self.api_client.update_dashboard_api(
-                    "extractionSuccess", filepath, extraction_temp_file, media_type, language, size_bytes
+                    "success", filepath, extraction_temp_file, media_type, language, size_bytes
                 )
             else:
                 logger.warning(f"Track extraction failed or produced no file. Processing original: {filepath}")
                 self.api_client.update_dashboard_api(
-                    "extractionFailed", filepath, "Extraction Error", media_type, language, size_bytes, "Track extraction failed"
+                    "failed", filepath, "Extraction Error", media_type, language, size_bytes, "Track extraction failed"
                 )
                 # file_to_process remains the original filepath
 
@@ -187,7 +187,7 @@ class MediaProcessor:
         if not target_base_path:
             logger.error(f"Could not determine target base path for {filepath}")
             self.api_client.update_dashboard_api(
-                "transferFailed", filepath, "Unknown Target", media_type, language, size_bytes, "Unknown target path"
+                "failed", filepath, "Unknown Target", media_type, language, size_bytes, "Unknown target path"
             )
             return False
 
@@ -207,7 +207,7 @@ class MediaProcessor:
         if not final_filename or not target_path_on_share:
             logger.error(f"Could not format final filename or path for {file_to_process} (original: {filepath})")
             self.api_client.update_dashboard_api(
-                "transferFailed", file_to_process, "Filename/Path Error", media_type, language, size_bytes, "Filename formatting/path error"
+                "failed", file_to_process, "Filename/Path Error", media_type, language, size_bytes, "Filename formatting/path error"
             )
             if extraction_temp_file and os.path.exists(extraction_temp_file): # Cleanup temp extracted file
                 logger.info(f"Cleaning up temporary extraction file: {extraction_temp_file}")
@@ -217,7 +217,7 @@ class MediaProcessor:
         
         # Notify dashboard API of transfer start (using file_to_process as source)
         self.api_client.update_dashboard_api(
-            "transferStart", 
+            "processing", 
             file_to_process, # This is the file we are about to transfer
             target_path_on_share, 
             media_type, 
@@ -245,7 +245,7 @@ class MediaProcessor:
         success = self._transfer_file(file_to_process, target_path_on_share)
         
         # Update dashboard API with result
-        status_event = "transferSuccess" if success else "transferFailed"
+        status_event = "success" if success else "failed"
         error_message = None if success else f"SMB transfer of {file_to_process} to {target_path_on_share} failed."
         self.api_client.update_dashboard_api(
             status_event,
@@ -262,18 +262,24 @@ class MediaProcessor:
             if self.config.get("clean_original_files", False):
                 # If extraction happened, clean up the original file
                 if file_to_process != filepath:
-                    logger.info(f"Transfer successful. Cleaning up original file after extraction: {filepath}")
-                    try:
-                        os.remove(filepath)
-                    except OSError as e:
-                        logger.error(f"Failed to remove original file {filepath} after successful extraction and transfer: {e}")
+                    if os.path.exists(filepath):
+                        logger.info(f"Transfer successful. Cleaning up original file after extraction: {filepath}")
+                        try:
+                            os.remove(filepath)
+                        except OSError as e:
+                            logger.error(f"Failed to remove original file {filepath} after successful extraction and transfer: {e}")
+                    else:
+                        logger.info(f"Original file {filepath} already removed (possibly by JDownloader auto-cleanup)")
                 # If no extraction happened, clean up the source file that was transferred
                 else:
-                    logger.info(f"Transfer successful. Cleaning up source file: {filepath}")
-                    try:
-                        os.remove(filepath)
-                    except OSError as e:
-                        logger.error(f"Failed to remove source file {filepath} after successful transfer: {e}")
+                    if os.path.exists(filepath):
+                        logger.info(f"Transfer successful. Cleaning up source file: {filepath}")
+                        try:
+                            os.remove(filepath)
+                        except OSError as e:
+                            logger.error(f"Failed to remove source file {filepath} after successful transfer: {e}")
+                    else:
+                        logger.info(f"Source file {filepath} already removed (possibly by JDownloader auto-cleanup)")
         
         # Clean up temporary extracted file if it exists and is different from original (it's temporary)
         if extraction_temp_file and extraction_temp_file != filepath and os.path.exists(extraction_temp_file):
@@ -342,81 +348,126 @@ class MediaProcessor:
         
         # Extract year to preserve it (will be added back later if not in final title)
         year_match = re.search(r'\((\d{4})\)', name_part)
+        if not year_match:
+            year_match = re.search(r'\b(\d{4})\b', name_part)
         year_value = year_match.group(1) if year_match else None
         
-        # Remove website prefixes more aggressively
-        # Handle TamilMV patterns (www.1TamilMV.boo, www 2TamilMV com, www 1TamilMV org, etc.)
-        # Fixed pattern to handle single dots correctly
-        name_part = re.sub(r'^www[\s.]*\d*\s*tamilmv[\s.]*\w*\s*-\s*', '', name_part, flags=re.IGNORECASE)
-        # Handle specific pattern: "www 1TamilMV org -"
-        name_part = re.sub(r'^www\s+\d+tamilmv\s+org\s*-\s*', '', name_part, flags=re.IGNORECASE)
-        # Handle sanet.st and similar patterns
-        name_part = re.sub(r'^sanet[\s.]*\w*\s*-\s*', '', name_part, flags=re.IGNORECASE)
-        # General website patterns (www.site.com - )
-        name_part = re.sub(r'^www\.\w+\.\w+\s*-\s*', '', name_part, flags=re.IGNORECASE)
-        name_part = re.sub(r'^www\s+\w+\s+\w+\s*-\s*', '', name_part, flags=re.IGNORECASE)  # Handle spaces in domain
-        # Remove any bracketed website names at the beginning
-        name_part = re.sub(r'^\[\s*(?:www[\s.]*)?\w*(?:tamilmv|sanet)[\s.]*\w*\s*\]\s*', '', name_part, flags=re.IGNORECASE)
-        # Remove website names without www prefix
-        name_part = re.sub(r'^\d*\s*tamilmv[\s.]*\w*\s*-\s*', '', name_part, flags=re.IGNORECASE)
+        logger.info(f"Cleaning filename: '{name_part}' (Year found: {year_value})")
+        
+        # Enhanced torrent site and release group removal
+        # Handle multiple variations of common torrent sites
+        torrent_site_patterns = [
+            # Sanet.st variations (like "Sanet st.Casino__1080p...")
+            r'^sanet[\s._]*st[\s._]*',
+            r'^sanet[\s._]*\w*[\s._]*-?[\s._]*',
+            # TamilMV variations
+            r'^www[\s.]*\d*\s*tamilmv[\s.]*\w*\s*-\s*',
+            r'^www\s+\d+tamilmv\s+org\s*-\s*',
+            r'^\d*\s*tamilmv[\s.]*\w*\s*-\s*',
+            # General website patterns (more conservative to avoid removing movie titles)
+            r'^www\.\w+\.\w+\s*-\s*',
+            r'^www\s+\w+\s+\w+\s*-\s*',
+            # Bracketed website names
+            r'^\[\s*(?:www[\s.]*)?\w*(?:tamilmv|sanet|rarbg|yts)[\s.]*\w*\s*\]\s*',
+            # Other common torrent sites (more specific)
+            r'^\[?(rarbg|yts|1337x|torrentz|kickass)\]?[\s._]*-?\s*',
+            # Be more conservative with general patterns to avoid removing movie titles
+        ]
+        
+        for pattern in torrent_site_patterns:
+            old_name = name_part
+            name_part = re.sub(pattern, '', name_part, flags=re.IGNORECASE)
+            if old_name != name_part:
+                logger.info(f"Removed torrent site prefix: '{old_name}' -> '{name_part}'")
+        
+        # Remove excessive underscores and dots, convert to spaces
+        name_part = re.sub(r'[_]{2,}', ' ', name_part)  # Multiple underscores to single space
+        name_part = re.sub(r'[.]{2,}', ' ', name_part)  # Multiple dots to single space
+        name_part = name_part.replace('_', ' ').replace('.', ' ')
         
         # Extract movie title before technical details
-        # Look for patterns that typically separate title from technical info
+        # Enhanced separators to catch more variations
         title_separators = [
-            r'\s+-\s+(?:TRUE\s+)?(?:WEB-DL|BluRay|HDRip|DVDRip|BRRip|WebRip)',  # " - TRUE WEB-DL"
-            r'\s+(?:TRUE\s+)?(?:WEB-DL|BluRay|HDRip|DVDRip|BRRip|WebRip)',      # " TRUE WEB-DL"
-            r'\s+-\s+\d+p',  # " - 1080p"
+            r'\s*-\s*(?:TRUE\s+)?(?:WEB-DL|BluRay|HDRip|DVDRip|BRRip|WebRip|HDCAM|CAM|TS)',
+            r'\s+(?:TRUE\s+)?(?:WEB-DL|BluRay|HDRip|DVDRip|BRRip|WebRip|HDCAM|CAM|TS)',
+            r'\s*-\s*\d+p',  # " - 1080p"
             r'\s+\d+p',      # " 1080p"
+            r'\s*-\s*(?:MAX\s+)?(?:WEB-DL|BluRay)',  # " - MAX WEB-DL"
+            r'\s+(?:MAX\s+)?(?:WEB-DL|BluRay)',      # " MAX WEB-DL"
         ]
         
         for separator in title_separators:
             match = re.search(separator, name_part, flags=re.IGNORECASE)
             if match:
+                old_name = name_part
                 name_part = name_part[:match.start()].strip()
+                logger.info(f"Cut at technical separator: '{old_name}' -> '{name_part}'")
                 break
         
-        # Remove common junk patterns
+        # Remove release group tags (usually at the end in parentheses or brackets)
+        release_group_patterns = [
+            r'\s*-\s*[A-Z]{2,}$',  # " - LAMA", " - PiRaTes" at end
+            r'\s*\[[A-Z0-9]{2,}\]$',  # "[RARBG]", "[YTS]" at end
+            r'\s*\([A-Z0-9]{2,}\)$',  # "(RARBG)", "(YTS)" at end
+            r'\s*-\s*[A-Za-z0-9]{3,}$',  # Generic release group at end
+        ]
+        
+        for pattern in release_group_patterns:
+            old_name = name_part
+            name_part = re.sub(pattern, '', name_part, flags=re.IGNORECASE)
+            if old_name != name_part:
+                logger.info(f"Removed release group: '{old_name}' -> '{name_part}'")
+        
+        # Remove common junk patterns (enhanced)
         junk_patterns = [
             r'\[.*?\]',  # Content in square brackets
             r'\bHQ\b',   # HQ quality indicator
-            r'\b(x264|x265|AVC|HEVC)\b',  # Video codecs
-            r'\b(DD\+?[\d.]+|DTS|AAC)\b',  # Audio codecs
+            r'\b(x264|x265|AVC|HEVC|H\s*264|H\s*265)\b',  # Video codecs
+            r'\b(DD\+?[\d.]+|DTS|AAC|DDP\s*[\d.]+)\b',  # Audio codecs
             r'\b\d+Kbps\b',  # Bitrate info
             r'\b\d+\.?\d*GB\b',  # File size
             r'\bESub\b',  # Subtitle indicator
+            r'\bWEB\s*-?\s*DL\b',  # WEB-DL that might be leftover
+            r'\bBluRay\b',  # BluRay that might be leftover
+            r'\bHDRip\b',  # HDRip that might be leftover
+            r'\bMAX\b',   # MAX quality indicator
+            # Remove duplicate years (common in torrent files)
+            rf'\b{year_value}\b.*\b{year_value}\b' if year_value else r'never_match_this_pattern',
             # Remove website patterns that appear anywhere in the filename
-            r'\b\d*\s*tamilmv[\s.]*\w*\b',  # TamilMV patterns
-            r'\bsanet[\s.]*\w*\b',  # sanet.st patterns
+            r'\b\d*\s*tamilmv[\s.]*\w*\b',
+            r'\bsanet[\s.]*\w*\b',
             r'\s+-\s+.*$',  # Everything after " - " at the end
         ]
         
         for pattern in junk_patterns:
-            name_part = re.sub(pattern, '', name_part, flags=re.IGNORECASE)
+            if pattern != r'never_match_this_pattern':  # Skip the dummy pattern
+                old_name = name_part
+                name_part = re.sub(pattern, ' ', name_part, flags=re.IGNORECASE)
+                if old_name != name_part:
+                    logger.info(f"Removed junk pattern: '{old_name}' -> '{name_part}'")
         
-        # Clean up spaces and dots
-        name_part = name_part.replace('.', ' ').strip()
+        # Clean up spaces
         name_part = re.sub(r'\s+', ' ', name_part).strip()
         
         # Remove any remaining parentheses that don't contain a 4-digit year
         name_part = re.sub(r'\((?!\d{4})[^)]*\)', '', name_part).strip()
         name_part = re.sub(r'\s+', ' ', name_part).strip()
         
-        # If we ended up with something too short or empty, fall back to original
+        # If we ended up with something too short or empty, try a more conservative approach
         if len(name_part) < 3:
+            logger.warning(f"Aggressive cleaning resulted in too short name: '{name_part}', trying conservative approach")
             name_part = original_name
-            # Apply the same website cleaning patterns with fixed regex
+            # Apply only the most critical cleaning patterns
+            name_part = re.sub(r'^sanet[\s._]*st[\s._]*', '', name_part, flags=re.IGNORECASE)
             name_part = re.sub(r'^www[\s.]*\d*\s*tamilmv[\s.]*\w*\s*-\s*', '', name_part, flags=re.IGNORECASE)
-            name_part = re.sub(r'^sanet[\s.]*\w*\s*-\s*', '', name_part, flags=re.IGNORECASE)
-            name_part = re.sub(r'^www\.\w+\.\w+\s*-\s*', '', name_part, flags=re.IGNORECASE)
-            name_part = re.sub(r'^\[\s*(?:www[\s.]*)?\w*(?:tamilmv|sanet)[\s.]*\w*\s*\]\s*', '', name_part, flags=re.IGNORECASE)
-            name_part = re.sub(r'^\d*\s*tamilmv[\s.]*\w*\s*-\s*', '', name_part, flags=re.IGNORECASE)
-            name_part = name_part.replace('.', ' ').strip()
+            name_part = name_part.replace('_', ' ').replace('.', ' ')
             name_part = re.sub(r'\s+', ' ', name_part).strip()
         
         # Add year back if it's not already in the final name and we found one
-        if year_value and f"({year_value})" not in name_part:
+        if year_value and f"({year_value})" not in name_part and year_value not in name_part:
             name_part = f"{name_part} ({year_value})"
         
+        logger.info(f"Final cleaned filename: '{name_part}{ext_part}'")
         return f"{name_part}{ext_part}" if name_part else filename
 
 
@@ -570,12 +621,28 @@ class MediaProcessor:
                     logger.info(f"TV show fallback: Creating individual folder '{cleaned_name}'")
         
         elif media_type == "movie":
-            # Apply appropriate cleaning based on language
-            if language == "malayalam":
-                cleaned_name = self._sanitize_malayalam_filename(f"{name_part_for_naming}{current_file_ext}")
-                cleaned_name, _ = os.path.splitext(cleaned_name)  # Remove extension for processing
-            else:
-                cleaned_name = self._clean_filename_basic(name_part_for_naming)
+            # Use TMDB-powered sanitization for movies
+            try:
+                sanitized_filename, tmdb_data = self.media_detector.sanitize_movie_filename(
+                    f"{name_part_for_naming}{current_file_ext}", media_type
+                )
+                cleaned_name, _ = os.path.splitext(sanitized_filename)  # Remove extension for processing
+                
+                # Log TMDB data if available
+                if tmdb_data:
+                    tmdb_id = tmdb_data.get('id')
+                    original_title = tmdb_data.get('original_title')
+                    release_date = tmdb_data.get('release_date')
+                    logger.info(f"TMDB match: ID={tmdb_id}, Original='{original_title}', Release='{release_date}'")
+                
+            except Exception as e:
+                logger.error(f"Error in TMDB sanitization for '{name_part_for_naming}': {e}")
+                # Fallback to existing logic
+                if language == "malayalam":
+                    cleaned_name = self._sanitize_malayalam_filename(f"{name_part_for_naming}{current_file_ext}")
+                    cleaned_name, _ = os.path.splitext(cleaned_name)
+                else:
+                    cleaned_name = self._clean_filename_basic(name_part_for_naming)
                 
             year_match = re.search(r'(\d{4})', cleaned_name) # Check cleaned name first
             if not year_match:
@@ -947,18 +1014,10 @@ class MediaProcessor:
             
             logger.info(f"Scan complete. Found {found_files_this_scan} potential files, processed {processed_files_this_scan} files this cycle.")
             
-            # Sync stats to Node.js dashboard if files were processed
+            # Update file history after processing
             if processed_files_this_scan > 0:
-                try:
-                    sync_script_path = "/home/sharvinzlife/media-processor/sync-stats.js"
-                    if os.path.exists(sync_script_path):
-                        logger.info("Syncing dashboard stats after processing files...")
-                        subprocess.run(['node', sync_script_path], check=True, capture_output=True)
-                        logger.info("Dashboard stats synced successfully")
-                    else:
-                        logger.warning(f"Stats sync script not found: {sync_script_path}")
-                except Exception as e:
-                    logger.error(f"Error syncing dashboard stats: {e}")
+                # The file history is automatically updated during processing
+                logger.info(f"Successfully processed {processed_files_this_scan} files in this scan cycle")
             
             # General cleanup for RARs and any other empty dirs (e.g. if a dir had only RARs that were cleaned)
             self.cleanup_rar_files_py(download_dir, global_dry_run)

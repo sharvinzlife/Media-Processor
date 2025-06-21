@@ -225,11 +225,15 @@ Important notes about service management:
 
 To view service logs for troubleshooting:
 ```bash
-# Media processor logs
-journalctl -u media-processor.service -f
+# Media processor logs (primary service)
+journalctl -u media-processor-py.service -f
 
 # Web interface logs
 journalctl -u media-processor-ui.service -f
+
+# Alternative commands for continuous monitoring
+sudo journalctl -f -u media-processor-py.service
+sudo journalctl -f -u media-processor-ui.service
 ```
 
 ## 🔧 Configuration
