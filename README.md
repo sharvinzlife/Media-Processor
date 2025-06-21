@@ -217,7 +217,7 @@ Important notes about service management:
   ```
 * When troubleshooting, you may need to restart both services:
   ```bash
-  sudo systemctl restart media-processor.service
+  sudo systemctl restart media-processor-py.service
   sudo systemctl restart media-processor-ui.service
   ```
 
