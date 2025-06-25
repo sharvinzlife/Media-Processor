@@ -1,0 +1,43 @@
+# YOLO (You Only Live Once) Configuration for Media-Processor
+project_id: "media-processor"
+trust_level: "restricted"  # Start safe: untrusted -> restricted -> trusted -> privileged
+
+# Operation risk classification
+operations:
+  low_risk:
+    - file_read
+    - directory_list
+    - status_check
+    - log_view
+  
+  medium_risk:
+    - file_edit
+    - dependency_install
+    - service_restart
+    - test_run
+    
+  high_risk:
+    - file_delete
+    - database_modify
+    - production_deploy
+    - system_command
+
+# Auto-confirmation rules
+auto_confirm:
+  low_risk: true
+  medium_risk: false  # Require confirmation initially
+  high_risk: false
+
+# Audit and logging
+audit:
+  enabled: true
+  log_level: "INFO"
+  retention_days: 30
+  backup_before_changes: true
+
+# Project-specific rules
+media_processor:
+  safe_directories: ["./docs", "./web-app/frontend/src", "./python_core/modules"]
+  protected_files: [".env", "*.db", "*.json.backup"]
+  auto_test_after_changes: true
+  require_confirmation_for: ["SMB operations", "file processing", "database changes"]

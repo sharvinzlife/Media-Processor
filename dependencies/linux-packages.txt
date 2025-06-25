@@ -1,0 +1,88 @@
+# Linux System Packages
+# Package names for different Linux distributions
+
+[ubuntu_debian]
+# Ubuntu/Debian package names (apt)
+git
+curl
+wget
+nodejs
+npm
+python3
+python3-pip
+python3-venv
+python3-dev
+build-essential
+ffmpeg
+mediainfo
+mkvtoolnix
+smbclient
+
+[centos_rhel]
+# CentOS/RHEL package names (yum)
+git
+curl
+wget
+nodejs
+npm
+python3
+python3-pip
+python3-devel
+gcc
+gcc-c++
+make
+ffmpeg
+mediainfo
+# mkvtoolnix available in EPEL
+samba-client
+
+[fedora]
+# Fedora package names (dnf)
+git
+curl
+wget
+nodejs
+npm
+python3
+python3-pip
+python3-devel
+gcc
+gcc-c++
+make
+ffmpeg
+mediainfo
+mkvtoolnix
+samba-client
+
+[arch]
+# Arch Linux package names (pacman)
+git
+curl
+wget
+nodejs
+npm
+python
+python-pip
+base-devel
+ffmpeg
+mediainfo
+mkvtoolnix-cli
+smbclient
+
+[opensuse]
+# openSUSE package names (zypper)
+git
+curl
+wget
+nodejs
+npm
+python3
+python3-pip
+python3-devel
+gcc
+gcc-c++
+make
+ffmpeg
+mediainfo
+mkvtoolnix
+samba-client

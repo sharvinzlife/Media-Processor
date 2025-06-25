@@ -1,0 +1,53 @@
+{
+  "mcpServers": {
+    "github-server": {
+      "type": "stdio",
+      "command": "./node_modules/.bin/mcp-server-github",
+      "args": [],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_PERSONAL_ACCESS_TOKEN}"
+      }
+    },
+    "filesystem-server": {
+      "type": "stdio", 
+      "command": "./node_modules/.bin/mcp-server-filesystem",
+      "args": [
+        "./web-app",
+        "./python_core", 
+        "./mcp-servers",
+        "./docs",
+        "./lib",
+        "./tools",
+        "./data"
+      ],
+      "env": {}
+    },
+    "puppeteer-server": {
+      "type": "stdio",
+      "command": "./node_modules/.bin/mcp-server-puppeteer",
+      "args": [],
+      "env": {
+        "PUPPETEER_HEADLESS": "true",
+        "PUPPETEER_TIMEOUT": "30000"
+      }
+    },
+    "memory-server": {
+      "type": "stdio",
+      "command": "./mcp-servers/memory-venv/bin/python",
+      "args": ["./mcp-servers/simple-memory-server.py"],
+      "env": {}
+    }
+  },
+  "yolo": {
+    "enabled": true,
+    "trustLevel": "PRIVILEGED",
+    "autoConfirm": true,
+    "allowDangerous": true,
+    "permissions": {
+      "filesystem": "full",
+      "database": "full",
+      "processes": "full",
+      "network": "full"
+    }
+  }
+}

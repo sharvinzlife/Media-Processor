@@ -1,0 +1,20 @@
+[Unit]
+Description=Media Processor API Server
+After=network.target
+
+[Service]
+Type=simple
+User=sharvinzlife
+Group=sharvinzlife
+WorkingDirectory=/home/sharvinzlife/media-processor/python_core
+EnvironmentFile=/home/sharvinzlife/media-processor/.env
+Environment=PATH=/home/sharvinzlife/media-processor/python_core/venv/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/home/sharvinzlife/media-processor/python_core/venv/bin/python /home/sharvinzlife/media-processor/python_core/api_server.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+EOF < /dev/null

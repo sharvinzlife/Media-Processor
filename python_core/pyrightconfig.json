@@ -1,0 +1,10 @@
+{
+  "venvPath": ".",
+  "venv": ".venv",
+  "extraPaths": [
+    ".venv/lib/python3.*/site-packages"
+  ],
+  "ignore": [
+    ".venv"
+  ]
+} 

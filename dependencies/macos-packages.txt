@@ -1,0 +1,38 @@
+# macOS Homebrew Packages
+# Package names for macOS using Homebrew
+
+[homebrew]
+# Core packages
+git
+curl
+wget
+
+# Programming languages
+node
+python@3.11
+
+# Media processing
+ffmpeg
+mediainfo
+mkvtoolnix
+
+# Network tools
+samba
+
+[optional]
+# Optional development tools
+gcc
+make
+
+[post_install]
+# Commands to run after installation
+# Link Python 3.11 as python3
+brew link --overwrite python@3.11
+
+[architecture_specific]
+# Intel Macs
+# No special requirements
+
+# Apple Silicon Macs
+# Homebrew installs to /opt/homebrew
+# Scripts automatically detect and configure PATH

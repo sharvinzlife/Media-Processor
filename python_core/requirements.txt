@@ -1,0 +1,51 @@
+# Media Processor Python Dependencies
+# Core web framework
+flask>=3.0.0
+flask-cors>=4.0.0
+
+# HTTP requests
+requests>=2.31.0
+
+# Media processing
+pymediainfo>=6.0.0
+
+# SMB/Network file operations
+pysmb>=1.2.9
+
+# Progress bars and utilities
+tqdm>=4.66.0
+
+# System utilities
+psutil>=5.9.0
+
+# JSON handling (built into Python 3.8+)
+# No additional JSON library needed
+
+# Logging enhancements
+colorlog>=6.7.0
+
+# Configuration file handling
+pyyaml>=6.0.0
+python-dotenv>=1.0.0
+
+# Date and time utilities
+python-dateutil>=2.8.2
+
+# File system utilities
+watchdog>=3.0.0
+
+# Network utilities
+netifaces>=0.11.0
+
+# System information
+# Note: Platform-specific dependencies are handled by install-dependencies.sh
+#
+# Linux-specific packages (installed via system package manager):
+#   - python3-dev
+#   - build-essential
+#
+# macOS-specific packages:
+#   - No additional packages needed
+#
+# Windows-specific packages:
+#   - pywin32>=306 (install only on Windows)

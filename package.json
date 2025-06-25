@@ -1,0 +1,73 @@
+{
+  "name": "media-processor",
+  "version": "3.5.0",
+  "description": "🎬 Intelligent Media Processor: Auto-detects languages, extracts specific audio/subtitles, organizes files, and transfers to NAS for Plex, Jellyfin, Emby & Kodi. Works with JDownloader and any download folder.",
+  "main": "index.js",
+  "scripts": {
+    "start": "cd web-app && npm start",
+    "web-app": "cd web-app && npm start",
+    "install-deps": "npm install && cd web-app && npm install",
+    "dev": "cd web-app && npm run dev",
+    "build": "cd web-app && npm run build",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sharvinzlife/media-processor.git"
+  },
+  "keywords": [
+    "media-processor",
+    "plex",
+    "jellyfin",
+    "emby",
+    "kodi",
+    "jdownloader",
+    "media-automation",
+    "language-detection",
+    "subtitle-extraction",
+    "audio-extraction",
+    "malayalam",
+    "nas",
+    "smb",
+    "media-server",
+    "media-organization",
+    "ffmpeg",
+    "mkvtoolnix",
+    "movie-organizer",
+    "tv-show-organizer",
+    "media-library",
+    "automation",
+    "file-management",
+    "media-center",
+    "home-server",
+    "sonarr",
+    "radarr",
+    "bazarr",
+    "mediainfo",
+    "cross-platform",
+    "docker",
+    "linux",
+    "macos",
+    "windows"
+  ],
+  "author": "sharvinzlife",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/sharvinzlife/media-processor/issues"
+  },
+  "homepage": "https://github.com/sharvinzlife/media-processor#readme",
+  "dependencies": {
+    "@modelcontextprotocol/server-puppeteer": "^2025.5.12",
+    "@upstash/context7-mcp": "^1.0.14",
+    "dotenv": "^16.3.1",
+    "http-proxy-middleware": "^3.0.5",
+    "puppeteer": "^24.10.2"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/server-filesystem": "^2025.3.28",
+    "@modelcontextprotocol/server-github": "^2025.4.8"
+  }
+}

@@ -1,0 +1,28 @@
+name: media-development
+description: Specialized toolset for media processing development
+version: "1.0.0"
+tools:
+  # Core development tools
+  - filesystem/*
+  - github/*
+  - puppeteer/*
+  - memory/*
+  
+  # Development automation
+  - yolo/confirm_operation
+  - yolo/audit_log
+  
+  # Future: Media processing specific tools
+  # - media-processor/detect_media_language
+  # - media-processor/test_smb_connection
+  # - media-processor/process_media_file
+
+restrictions:
+  max_file_size: "100MB"
+  allowed_extensions: [".py", ".js", ".ts", ".tsx", ".json", ".yaml", ".md", ".txt"]
+  forbidden_paths: [".env", "*.key", "*.pem"]
+  
+safety:
+  require_confirmation: ["rm", "delete", "DROP", "truncate"]
+  backup_before: ["edit", "modify", "update"]
+  dry_run_first: ["process", "migrate", "deploy"]

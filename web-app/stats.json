@@ -1,0 +1,98 @@
+{
+  "english_movies": 3,
+  "malayalam_movies": 1,
+  "english_tv_shows": 0,
+  "malayalam_tv_shows": 6,
+  "files": [
+    {
+      "name": "Sanet.st.Casino_1995_1080p_MAX_WEB-DL_DDP_5_1_H_265-PiRaTeS.mkv",
+      "type": "movie",
+      "language": "english",
+      "processedAt": "2025-06-21T23:38:55.100300+00:00",
+      "path": "media/movies/Sanet st.Casino__1080p_MAX_WEB-DL_DDP_5_1_H_265-PiRaTeS (1995)/Sanet st.Casino__1080p_MAX_WEB-DL_DDP_5_1_H_265-PiRaTeS (1995).1080p.mkv",
+      "size": "11.2GB",
+      "status": "success"
+    },
+    {
+      "name": "www.1TamilMV.cafe - Kerala Crime Files (2023) S01 EP06_mal_extracted.mkv",
+      "type": "tvshow",
+      "language": "malayalam",
+      "processedAt": "2025-06-21T17:58:55.100261+00:00",
+      "path": "media/malayalam-tv-shows/Kerala Crime Files (2023)/Season 1/Kerala Crime Files (2023) S01 EP06.1080p.Malayalam.mkv",
+      "size": "796.0MB",
+      "status": "success"
+    },
+    {
+      "name": "www.1TamilMV.cafe - Kerala Crime Files (2023) S01 EP02_mal_extracted.mkv",
+      "type": "tvshow",
+      "language": "malayalam",
+      "processedAt": "2025-06-20T20:59:55.100284+00:00",
+      "path": "media/malayalam-tv-shows/Kerala Crime Files (2023)/Season 1/Kerala Crime Files (2023) S01 EP02.1080p.Malayalam.mkv",
+      "size": "663.3MB",
+      "status": "success"
+    },
+    {
+      "name": "www.1TamilMV.cafe - Kerala Crime Files (2023) S01 EP03_mal_extracted.mkv",
+      "type": "tvshow",
+      "language": "malayalam",
+      "processedAt": "2025-06-20T13:36:55.100271+00:00",
+      "path": "media/malayalam-tv-shows/Kerala Crime Files (2023)/Season 1/Kerala Crime Files (2023) S01 EP03.1080p.Malayalam.mkv",
+      "size": "739.0MB",
+      "status": "success"
+    },
+    {
+      "name": "www.1TamilMV.cafe - Kerala Crime Files (2023) S01 EP05_mal_extracted.mkv",
+      "type": "tvshow",
+      "language": "malayalam",
+      "processedAt": "2025-06-19T17:04:55.100266+00:00",
+      "path": "media/malayalam-tv-shows/Kerala Crime Files (2023)/Season 1/Kerala Crime Files (2023) S01 EP05.1080p.Malayalam.mkv",
+      "size": "617.3MB",
+      "status": "success"
+    },
+    {
+      "name": "www.1TamilMV.cafe - Kerala Crime Files (2023) S01 EP01_mal_extracted.mkv",
+      "type": "tvshow",
+      "language": "malayalam",
+      "processedAt": "2025-06-19T10:10:55.100251+00:00",
+      "path": "media/malayalam-tv-shows/Kerala Crime Files (2023)/Season 1/Kerala Crime Files (2023) S01 EP01.1080p.Malayalam.mkv",
+      "size": "700.6MB",
+      "status": "success"
+    },
+    {
+      "name": "www.1TamilMV.cafe - Kerala Crime Files (2023) S01 EP04_mal_extracted.mkv",
+      "type": "tvshow",
+      "language": "malayalam",
+      "processedAt": "2025-06-18T12:45:55.100276+00:00",
+      "path": "media/malayalam-tv-shows/Kerala Crime Files (2023)/Season 1/Kerala Crime Files (2023) S01 EP04.1080p.Malayalam.mkv",
+      "size": "651.8MB",
+      "status": "success"
+    },
+    {
+      "name": "The.Killer.2024.1080p.BluRay.x264.DTS-WiKi.SANET.ST.mkv",
+      "type": "movie",
+      "language": "english",
+      "processedAt": "2025-06-18T08:24:55.100290+00:00",
+      "path": "media/movies/The Killer  1080p BluRay -WiKi.ST (2024)/The Killer  1080p BluRay -WiKi.ST (2024).1080p.mkv",
+      "size": "13.6GB",
+      "status": "success"
+    },
+    {
+      "name": "Presence.2024.UHD.BluRay.1080p.DD.Atmos.5.1.HDR10.x265-SM737.SANET.ST.mkv",
+      "type": "movie",
+      "language": "english",
+      "processedAt": "2025-06-18T00:46:55.100295+00:00",
+      "path": "media/movies/Presence  UHD BluRay 1080p Atmos 5 1 HDR10 -SM737.ST (2024)/Presence  UHD BluRay 1080p Atmos 5 1 HDR10 -SM737.ST (2024).1080p.mkv",
+      "size": "4.5GB",
+      "status": "success"
+    },
+    {
+      "name": "Bhaskar_the_Rascal_2023_HQ_HDRip_1080p_x264_Tam.mkv",
+      "type": "movie",
+      "language": "malayalam",
+      "processedAt": "2025-06-23T13:45:00.000000+00:00",
+      "path": "media/malayalam movies/Bhaskar the Rascal HQ (2023)/Bhaskar the Rascal HQ (2023).1080p.Malayalam.mkv",
+      "size": "2.5GB",
+      "status": "success"
+    }
+  ]
+}

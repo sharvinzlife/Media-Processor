@@ -1,0 +1,18 @@
+[Unit]
+Description=Media Processor Python Service
+After=network.target
+
+[Service]
+Type=simple
+User=sharvinzlife
+WorkingDirectory=/home/sharvinzlife/media-processor
+ExecStart=/home/sharvinzlife/media-processor/venv/bin/python /home/sharvinzlife/media-processor/python_core/media_processor.py
+Restart=on-failure
+RestartSec=10
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=media-processor-py
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target 

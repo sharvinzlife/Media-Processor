@@ -1,0 +1,10 @@
+{
+  "npm.packageManager": "npm",
+  "python.defaultInterpreterPath": "${workspaceFolder}/python_core/.venv/bin/python",
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}/python_core/.venv/lib/python3.*/site-packages"
+  ],
+  "python.linting.enabled": true,
+  "python.linting.pylintEnabled": false,
+  "python.analysis.diagnosticMode": "workspace"
+} 
